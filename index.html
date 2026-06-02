@@ -127,16 +127,15 @@
 </div>
 
 <script>
-    // ⚠️ 請將雙引號內的網址替換成你剛剛複製的 Google Apps Script API 網址 ⚠️
-    const API_URL = "https://script.google.com/macros/s/AKfycbxD3-MUIy_uj4k86gIvHj4FWky8oJPeIuo1aSXG5kjvHoyB9AXnAf8HdRNdrOZpYUjuaA/exec";
+// ⚠️ 請確認這裡是你自己的 API 網址 ⚠️
+    const API_URL = "https://script.google.com/macros/s/AKfycbynSXDVVI2Y7N5CCKEOwsWiEF3PM5Ib97D4VC_71VeqSoaMrx0-TpY6gzwkBz_m8NMddA/exec";
     
     let cardsData = [];
     let statsData = {};
     let currentCardIndex = 0;
     let isFlipped = false;
-    const DAILY_CAP = 15; // 每天最高複習上限
+    const DAILY_CAP = 15;
 
-    // 系統初始化：抓取資料
     window.onload = async function() {
         document.getElementById("loading").style.display = "block";
         try {
@@ -144,7 +143,6 @@
             let data = await response.json();
             
             statsData = data.stats;
-            // 限制每日題數，防止爆量
             cardsData = data.cards.slice(0, DAILY_CAP); 
             
             document.getElementById("streak-count").innerText = statsData.streak || 0;
@@ -160,7 +158,6 @@
             }
         } catch (error) {
             document.getElementById("loading").innerText = "資料讀取失敗，請檢查網路或 API 網址設定。";
-            console.error(error);
         }
     };
 
@@ -185,91 +182,138 @@
         
         document.getElementById("card-answer").style.display = "none";
         document.getElementById("score-btns").style.display = "none";
+        document.getElementById("click-hint").innerText = "(點擊卡片看解答並發音)";
         document.getElementById("click-hint").style.display = "block";
     }
 
     function flipCard() {
-        if (isFlipped) return;
-        isFlipped = true;
+        if (!isFlipped) {
+            isFlipped = true;
+            document.getElementById("card-answer").style.display = "block";
+            document.getElementById("score-btns").style.display = "flex";
+            document.getElementById("click-hint").innerText = "(點擊卡片可再次聆聽發音 🔊)";
+        }
         
-        document.getElementById("card-answer").style.display = "block";
-        document.getElementById("score-btns").style.display = "flex";
-        document.getElementById("click-hint").style.display = "none";
-        
-        // 呼叫瀏覽器內建語音發音
+        // 修正：無論是不是第一次翻開，只要點擊就會重新發音
         let sentence = cardsData[currentCardIndex].sentence_en;
         let utterance = new SpeechSynthesisUtterance(sentence);
         utterance.lang = 'en-US';
-        utterance.rate = 0.9; // 稍微放慢語速
+        utterance.rate = 0.9; 
         window.speechSynthesis.speak(utterance);
     }
 
-    // 計算間隔重複演算法 (簡易版 Anki SRS)
     async function scoreCard(score) {
         let card = cardsData[currentCardIndex];
-            let interval = card.interval || 0;
-            let isStuck = 0;
-        
-            if (score === 'repeat') {
-                // 不變，留在當日循環
-                interval = 0;
-            } else if (score === 'good') {
-                interval = 1;
-            } else if (score === 'easy') {
-                interval = 3;
-            } else if (score === 'sos') {
-                isStuck = 1; // 標記為待處理
-                interval = 0;
-            }
-            
-            // 計算下次複習日期 (如果是 SOS，日期設為未來某個遙遠日期或保持原樣)
-            let nextDate = new Date();
-            if(score !== 'sos') {
-                nextDate.setDate(nextDate.getDate() + interval);
-            }
-            let formattedDate = nextDate.toISOString().split('T')[0];
-            
-            // 背景同步更新
-            fetch(API_URL, {
-                method: 'POST',
-                body: JSON.stringify({
-                    action: 'updateCard',
-                    rowNumber: card.rowNumber,
-                    nextReviewDate: formattedDate,
-                    interval: interval,
-                    isStuck: isStuck // 記得在 Google Apps Script 的 doPost 中同步處理這個變數
-                }),
-                headers: { 'Content-Type': 'text/plain' }
-            });
-            
+        let interval = card.interval || 0;
+        let isStuck = 0;
+        let ease = card.easeFactor || 2.5; // 確保讀取 easeFactor 不會遺失
+
+        if (score === 'repeat') {
+            interval = 0;
+            // 修正：將這張卡片複製一份，放到題庫陣列最後面，稍後會再次出現
+            cardsData.push(Object.assign({}, card));
+            // 對於「再試一次」，我們不急著寫回資料庫，等使用者最終選擇普通/熟悉時再寫入
             currentCardIndex++;
             loadCard();
+            return; 
+        } else if (score === 'sos') {
+            // 修正：增加防呆確認視窗
+            let confirmSOS = confirm("遇到瓶頸了嗎？\n確定要將此題標記為 SOS 嗎？(標記後將暫停出現，請於週末去試算表調整或請 AI 簡化)");
+            if (!confirmSOS) return; // 按取消則留在原畫面
+            isStuck = 1;
+            interval = 0;
+        } else if (score === 'good') {
+            interval = 1;
+        } else if (score === 'easy') {
+            interval = 3;
+            ease += 0.15; // 稍微增加熟練度係數
+        }
+        
+        let nextDate = new Date();
+        if(score !== 'sos') {
+            nextDate.setDate(nextDate.getDate() + interval);
+        }
+        let formattedDate = nextDate.toISOString().split('T')[0];
+        
+        // 背景同步更新
+        fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'updateCard',
+                rowNumber: card.rowNumber,
+                nextReviewDate: formattedDate,
+                interval: interval,
+                isStuck: isStuck,
+                easeFactor: ease
+            }),
+            headers: { 'Content-Type': 'text/plain' }
+        });
+        
+        currentCardIndex++;
+        loadCard();
     }
 
     function finishDailyReview() {
         document.getElementById("study-screen").style.display = "none";
         document.getElementById("completion-screen").style.display = "block";
         
-        // 更新連續打卡天數
-        let todayStr = new Date().toISOString().split('T')[0];
-        let currentStreak = parseInt(statsData.streak) || 0;
+        // 修正：導入真實日期比對邏輯 (Date Diff)
+        let today = new Date();
+        today.setHours(0,0,0,0);
+        let todayStr = today.toISOString().split('T')[0];
         
-        if (statsData.lastLoginDate !== todayStr) {
-            currentStreak += 1; // 假設沒斷掉直接 +1 (簡化版邏輯)
+        let currentStreak = parseInt(statsData.streak) || 0;
+        let freezeTokens = parseInt(statsData.freezeTokens) || 2;
+        let lastLoginStr = statsData.lastLoginDate;
+        
+        let updateStats = false;
+        
+        if (!lastLoginStr || lastLoginStr === "") {
+            currentStreak = 1; // 第一次玩
+            updateStats = true;
+        } else {
+            let lastLogin = new Date(lastLoginStr);
+            lastLogin.setHours(0,0,0,0);
+            
+            // 計算天數差
+            let diffTime = Math.abs(today - lastLogin);
+            let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (diffDays === 1) {
+                // 乖乖每天打卡
+                currentStreak += 1;
+                updateStats = true;
+            } else if (diffDays > 1) {
+                // 漏打卡了
+                if (freezeTokens > 0) {
+                    freezeTokens -= 1;
+                    currentStreak += 1; 
+                    alert(`您漏了 ${diffDays - 1} 天沒打卡！已自動消耗 1 面免死金牌 🛡️ 幫您維持連續紀錄！`);
+                } else {
+                    currentStreak = 1; 
+                    alert("您漏打卡太久，且免死金牌已用盡，連續紀錄歸零。沒關係，重新出發吧！💪");
+                }
+                updateStats = true;
+            }
+            // diffDays === 0 的情況代表今天重複刷題，什麼都不做，不增加天數
+        }
+
+        if (updateStats) {
             fetch(API_URL, {
                 method: 'POST',
                 body: JSON.stringify({
                     action: 'updateStats',
                     lastLoginDate: todayStr,
                     streak: currentStreak,
-                    freezeTokens: statsData.freezeTokens
+                    freezeTokens: freezeTokens
                 }),
                 headers: { 'Content-Type': 'text/plain' }
             });
             document.getElementById("streak-count").innerText = currentStreak;
+            document.getElementById("freeze-count").innerText = freezeTokens;
         }
 
-        // 準備好要分享到 LINE 的文字
+        // 隨機挑選今天答過的一句話分享（移除自動開啟LINE的語法，讓你手動貼上）
         let shareText = `🔥 今日刷題完成！\n\n這是我今天的精選句：\n[${cardsData[0].tag}]\n${cardsData[0].context_tw}\n👉 ${cardsData[0].sentence_en}\n\n聽完我的語音，換你囉！`;
         document.getElementById("share-text").value = shareText;
     }
@@ -278,9 +322,7 @@
         let text = document.getElementById("share-text");
         text.select();
         document.execCommand('copy');
-        alert("已複製分享文字！現在幫你開啟 LINE，請貼上並用語音唸出來吧！");
-        // 嘗試喚起 LINE (手機端有效)
-        window.location.href = "line://";
+        alert("已複製分享文字！請自行貼上至 LINE 群組。");
     }
 </script>
 
