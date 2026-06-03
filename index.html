@@ -96,12 +96,17 @@
 
     <!-- 首頁區塊 -->
     <div id="home-screen">
-        <p>今日待複習：<span id="due-count" style="font-weight:bold; color:#e53935;">0</span> 題</p>
+        <p>今日待複習：<span id="due-count" style="font-weight:bold; color:#e53935; font-size:1.2rem;">0</span> 題</p>
+        <p style="font-size: 0.9rem; color: #555; margin-bottom: 20px;">
+            (🆕 新句子: <span id="new-count">0</span> 題 | 🔄 複習: <span id="review-count">0</span> 題)
+        </p>
         <button class="btn-start" id="start-btn" onclick="startReview()" style="display:none;">開始挑戰</button>
     </div>
 
-    <!-- 刷題區塊 -->
     <div id="study-screen" style="display:none;">
+        <div id="progress-indicator" style="text-align: right; font-size: 0.9rem; color: #7f8c8d; margin-bottom: 8px; font-weight: bold;">
+            剩餘: 0 題
+        </div>
         <div class="card" id="flashcard" onclick="flipCard()">
             <div id="card-tag" class="tag">標籤</div>
             <div id="card-question" class="question">載入中...</div>
@@ -110,10 +115,10 @@
         </div>
 
         <div class="btn-group" id="score-btns">
-            <button style="background:#f39c12;" onclick="scoreCard('repeat')">再試一次</button>
-            <button class="btn-good" onclick="scoreCard('good')">普通<br>(明天)</button>
-            <button class="btn-easy" onclick="scoreCard('easy')">熟悉<br>(+3天)</button>
-            <button style="background:#9b59b6;" onclick="scoreCard('sos')">SOS<br>(救我)</button>
+            <button style="background:#f39c12;" onclick="scoreCard('repeat')">不熟<br>(重來)</button>
+            <button class="btn-good" onclick="scoreCard('good')">普通<br>(延長)</button>
+            <button class="btn-easy" onclick="scoreCard('easy')">太簡單<br>(大延後)</button>
+            <button style="background:#9b59b6;" onclick="scoreCard('sos')">SOS<br>(隔離)</button>
         </div>
     </div>
 
@@ -122,44 +127,94 @@
         <h2>🎉 任務完成！</h2>
         <p>今日額度已達成，請將今日最有感的一句話分享到 LINE 群組並錄音！</p>
         <textarea id="share-text" style="width: 100%; height: 80px; margin-bottom: 10px; padding: 10px; border-radius: 5px; border: 1px solid #ccc;" readonly></textarea>
-        <button class="btn-start" onclick="copyAndShare()">複製文字並開啟 LINE</button>
+        <button class="btn-start" onclick="copyAndShare()" style="margin-bottom: 10px;">複製文字，自行貼至 LINE</button>
+        <button class="btn-start" id="continue-btn" onclick="prepareNextBatch()" style="background: #f39c12; display: none;">繼續複習</button>
+        <button class="btn-start" onclick="startGlobalPractice()" style="background: #2980b9; margin-top: 10px;">進入全域練習模式 (無視進度，刷到爽)</button>
     </div>
 </div>
 
 <script>
-// ⚠️ 請確認這裡是你自己的 API 網址 ⚠️
+
     const API_URL = "https://script.google.com/macros/s/AKfycbynSXDVVI2Y7N5CCKEOwsWiEF3PM5Ib97D4VC_71VeqSoaMrx0-TpY6gzwkBz_m8NMddA/exec";
+    const API_TOKEN = "derek_srs_2026"; // 🛡️ 你的專屬鑰匙
     
+    let allDueCards = []; 
     let cardsData = [];
     let statsData = {};
+    let sessionHistory = [];
     let currentCardIndex = 0;
-    let isFlipped = false;
+    let cardState = 0; 
+    let isPracticeMode = false; // 💡 判定目前是否為全域練習模式
     const DAILY_CAP = 15;
+
+    function getLocalDateString(dateObj = new Date()) {
+        let year = dateObj.getFullYear();
+        let month = String(dateObj.getMonth() + 1).padStart(2, '0');
+        let day = String(dateObj.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
 
     window.onload = async function() {
         document.getElementById("loading").style.display = "block";
         try {
-            let response = await fetch(API_URL + "?action=getData");
+            let response = await fetch(API_URL + "?action=getData&token=" + API_TOKEN);
             let data = await response.json();
             
             statsData = data.stats;
-            cardsData = data.cards.slice(0, DAILY_CAP); 
+            allDueCards = data.cards; 
             
             document.getElementById("streak-count").innerText = statsData.streak || 0;
             document.getElementById("freeze-count").innerText = statsData.freezeTokens || 0;
-            document.getElementById("due-count").innerText = cardsData.length;
             
-            document.getElementById("loading").style.display = "none";
-            
-            if(cardsData.length > 0) {
-                document.getElementById("start-btn").style.display = "block";
+            if(allDueCards && allDueCards.length > 0) {
+                prepareNextBatch();
             } else {
-                document.getElementById("home-screen").innerHTML = "<p>太棒了！今天沒有需要複習的題目了，好好休息吧！🍻</p>";
+                // 🛑 修復 1：不破壞網頁結構，安全地更新文字
+                document.getElementById("loading").style.display = "none";
+                document.getElementById("due-count").innerText = "0";
+                document.getElementById("new-count").innerText = "0";
+                document.getElementById("review-count").innerText = "0";
+                
+                // 將原本的開始按鈕，改造為「全域練習」按鈕
+                let startBtn = document.getElementById("start-btn");
+                startBtn.innerText = "無待辦進度，點此進入全域練習 🚀";
+                startBtn.style.background = "#2980b9";
+                startBtn.onclick = startGlobalPractice; 
+                startBtn.style.display = "block";
+                
+                document.getElementById("home-screen").style.display = "block";
             }
+            
         } catch (error) {
             document.getElementById("loading").innerText = "資料讀取失敗，請檢查網路或 API 網址設定。";
         }
     };
+
+    // 新增：切出下一批 15 題的機制
+    function prepareNextBatch() {
+        cardsData = allDueCards.slice(0, DAILY_CAP);
+        allDueCards = allDueCards.slice(DAILY_CAP); // 剩下的留在備用庫
+        currentCardIndex = 0; // 索引歸零
+        
+        let newCardsCount = cardsData.filter(c => !c.interval || c.interval == 0).length;
+        let reviewCardsCount = cardsData.length - newCardsCount;
+        
+        document.getElementById("streak-count").innerText = statsData.streak || 0;
+        document.getElementById("freeze-count").innerText = statsData.freezeTokens || 0;
+        document.getElementById("due-count").innerText = cardsData.length;
+        document.getElementById("new-count").innerText = newCardsCount;
+        document.getElementById("review-count").innerText = reviewCardsCount;
+        
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("completion-screen").style.display = "none";
+        document.getElementById("home-screen").style.display = "block";
+        
+        if(cardsData.length > 0) {
+            document.getElementById("start-btn").style.display = "block";
+        } else {
+            document.getElementById("home-screen").innerHTML = "<p>太棒了！今天沒有需要複習的題目了，好好休息吧！🍻</p>";
+        }
+    }
 
     function startReview() {
         document.getElementById("home-screen").style.display = "none";
@@ -173,28 +228,48 @@
             return;
         }
         
-        isFlipped = false;
+        cardState = 0; // 每換下一題，狀態歸零
         let card = cardsData[currentCardIndex];
         
-        document.getElementById("card-tag").innerText = card.tag || "一般情境";
+        // 更新剩餘題數
+        let remaining = cardsData.length - currentCardIndex;
+        document.getElementById("progress-indicator").innerText = `剩餘: ${remaining} 題`;
+        
+        // 判斷是新句子還是複習
+        let isNew = (!card.interval || card.interval == 0);
+        let statusIcon = isNew ? "🆕 新學習 | " : "🔄 複習 | ";
+        
+        document.getElementById("card-tag").innerText = statusIcon + (card.tag || "一般情境");
         document.getElementById("card-question").innerText = card.context_tw;
         document.getElementById("card-answer").innerText = card.sentence_en;
         
         document.getElementById("card-answer").style.display = "none";
         document.getElementById("score-btns").style.display = "none";
-        document.getElementById("click-hint").innerText = "(點擊卡片看解答並發音)";
+        document.getElementById("click-hint").innerText = "(點擊卡片進入盲聽模式 🔊)";
         document.getElementById("click-hint").style.display = "block";
     }
 
+    // 盲聽影子跟讀核心邏輯
     function flipCard() {
-        if (!isFlipped) {
-            isFlipped = true;
+        if (cardState === 0) {
+            // 第一次點擊：盲聽模式 (播音但不秀字)
+            cardState = 1;
+            document.getElementById("click-hint").innerText = "(試著跟讀，再次點擊顯示解答 📖)";
+            playAudio();
+        } else if (cardState === 1) {
+            // 第二次點擊：顯示解答與評分按鈕
+            cardState = 2;
             document.getElementById("card-answer").style.display = "block";
             document.getElementById("score-btns").style.display = "flex";
             document.getElementById("click-hint").innerText = "(點擊卡片可再次聆聽發音 🔊)";
+        } else if (cardState === 2) {
+            // 第三次以上點擊：單純重播發音
+            playAudio();
         }
-        
-        // 修正：無論是不是第一次翻開，只要點擊就會重新發音
+    }
+
+    // 獨立出播放聲音的功能
+    function playAudio() {
         let sentence = cardsData[currentCardIndex].sentence_en;
         let utterance = new SpeechSynthesisUtterance(sentence);
         utterance.lang = 'en-US';
@@ -204,41 +279,41 @@
 
     async function scoreCard(score) {
         let card = cardsData[currentCardIndex];
-        let interval = card.interval || 0;
+        let interval = parseFloat(card.interval) || 0;
         let isStuck = 0;
-        let ease = card.easeFactor || 2.5; // 確保讀取 easeFactor 不會遺失
+        let ease = parseFloat(card.easeFactor) || 2.5; 
 
+        // 1. 動態計算間隔與熟練度
         if (score === 'repeat') {
             interval = 0;
-            // 修正：將這張卡片複製一份，放到題庫陣列最後面，稍後會再次出現
-            cardsData.push(Object.assign({}, card));
-            // 對於「再試一次」，我們不急著寫回資料庫，等使用者最終選擇普通/熟悉時再寫入
-            currentCardIndex++;
-            loadCard();
-            return; 
+            ease = Math.max(1.3, ease - 0.2); // 地板：熟練度最低 1.3 倍，不會變成負數
         } else if (score === 'sos') {
-            // 修正：增加防呆確認視窗
             let confirmSOS = confirm("遇到瓶頸了嗎？\n確定要將此題標記為 SOS 嗎？(標記後將暫停出現，請於週末去試算表調整或請 AI 簡化)");
-            if (!confirmSOS) return; // 按取消則留在原畫面
+            if (!confirmSOS) return; 
             isStuck = 1;
             interval = 0;
         } else if (score === 'good') {
-            interval = 1;
+            // 💡 只有選「太簡單」才會增加倍率，選「普通」倍率不變
+            interval = (interval === 0) ? 1 : Math.round(interval * ease);
         } else if (score === 'easy') {
-            interval = 3;
-            ease += 0.15; // 稍微增加熟練度係數
+            interval = (interval === 0) ? 4 : Math.round(interval * ease * 1.3);
+            ease = Math.min(3.0, ease + 0.15); // 天花板：熟練度倍率最高 3.0
         }
+        
+        // 🌟 新增：間隔天花板機制 (最多 180 天，確保大約半年一定會再看到一次)
+        interval = Math.min(180, interval);
         
         let nextDate = new Date();
         if(score !== 'sos') {
             nextDate.setDate(nextDate.getDate() + interval);
         }
-        let formattedDate = nextDate.toISOString().split('T')[0];
+        let formattedDate = getLocalDateString(nextDate);
         
-        // 背景同步更新
+        // 3. 寫回 Google Sheets (🐛 修正：現在不管按什麼，都會確實觸發 API 寫入！)
         fetch(API_URL, {
             method: 'POST',
             body: JSON.stringify({
+                token: API_TOKEN,
                 action: 'updateCard',
                 rowNumber: card.rowNumber,
                 nextReviewDate: formattedDate,
@@ -248,6 +323,22 @@
             }),
             headers: { 'Content-Type': 'text/plain' }
         });
+
+        // 4. 處理當次歷史紀錄與重來機制
+        if (score === 'repeat') {
+            // 如果不熟，把更新過數據的卡片塞到隊尾，強迫今天再看一次
+            let copiedCard = Object.assign({}, card);
+            copiedCard.interval = interval;
+            copiedCard.easeFactor = ease;
+            cardsData.push(copiedCard);
+        } else if (score !== 'sos') {
+            // 過關的才寫入無盡模式歷史紀錄
+            card.lastScore = score;
+            card.easeFactor = ease; // 更新為最新熟練度
+            if (!sessionHistory.some(c => c.rowNumber === card.rowNumber)) {
+                sessionHistory.push(card);
+            }
+        }
         
         currentCardIndex++;
         loadCard();
@@ -257,10 +348,7 @@
         document.getElementById("study-screen").style.display = "none";
         document.getElementById("completion-screen").style.display = "block";
         
-        // 修正：導入真實日期比對邏輯 (Date Diff)
-        let today = new Date();
-        today.setHours(0,0,0,0);
-        let todayStr = today.toISOString().split('T')[0];
+        let todayStr = getLocalDateString(); 
         
         let currentStreak = parseInt(statsData.streak) || 0;
         let freezeTokens = parseInt(statsData.freezeTokens) || 2;
@@ -268,40 +356,43 @@
         
         let updateStats = false;
         
-        if (!lastLoginStr || lastLoginStr === "") {
-            currentStreak = 1; // 第一次玩
-            updateStats = true;
-        } else {
-            let lastLogin = new Date(lastLoginStr);
-            lastLogin.setHours(0,0,0,0);
-            
-            // 計算天數差
-            let diffTime = Math.abs(today - lastLogin);
-            let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-            
-            if (diffDays === 1) {
-                // 乖乖每天打卡
-                currentStreak += 1;
-                updateStats = true;
-            } else if (diffDays > 1) {
-                // 漏打卡了
-                if (freezeTokens > 0) {
-                    freezeTokens -= 1;
-                    currentStreak += 1; 
-                    alert(`您漏了 ${diffDays - 1} 天沒打卡！已自動消耗 1 面免死金牌 🛡️ 幫您維持連續紀錄！`);
-                } else {
-                    currentStreak = 1; 
-                    alert("您漏打卡太久，且免死金牌已用盡，連續紀錄歸零。沒關係，重新出發吧！💪");
+        if (lastLoginStr !== todayStr) {
+            if (!lastLoginStr || lastLoginStr === "") {
+                currentStreak = 1; 
+            } else {
+                let lastLogin = new Date(lastLoginStr);
+                let todayDate = new Date(todayStr); 
+                let diffTime = Math.abs(todayDate - lastLogin);
+                let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                
+                if (diffDays === 1) {
+                    currentStreak += 1;
+                    if (currentStreak % 7 === 0) {
+                        if (freezeTokens < 3) {
+                            freezeTokens += 1;
+                            alert(`🎉 太神啦！連續刷題 ${currentStreak} 天！\n系統獎勵您 1 面免死金牌 🛡️！`);
+                        }
+                    }
+                } else if (diffDays > 1) {
+                    if (freezeTokens > 0) {
+                        freezeTokens -= 1;
+                        currentStreak += 1; 
+                        alert(`您漏了 ${diffDays - 1} 天沒打卡！已自動消耗 1 面免死金牌 🛡️ 幫您維持紀錄！`);
+                    } else {
+                        currentStreak = 1; 
+                        alert("您漏打卡太久，且免死金牌已用盡，連續紀錄歸零。重新出發吧！💪");
+                    }
                 }
-                updateStats = true;
             }
-            // diffDays === 0 的情況代表今天重複刷題，什麼都不做，不增加天數
+            updateStats = true;
         }
 
         if (updateStats) {
+            // 🐛 關鍵修復：這裡原本漏了 token，導致 Google Sheets 拒絕寫入
             fetch(API_URL, {
                 method: 'POST',
                 body: JSON.stringify({
+                    token: API_TOKEN, 
                     action: 'updateStats',
                     lastLoginDate: todayStr,
                     streak: currentStreak,
@@ -309,13 +400,44 @@
                 }),
                 headers: { 'Content-Type': 'text/plain' }
             });
+            
+            statsData.lastLoginDate = todayStr;
+            statsData.streak = currentStreak;
+            statsData.freezeTokens = freezeTokens;
+            
             document.getElementById("streak-count").innerText = currentStreak;
             document.getElementById("freeze-count").innerText = freezeTokens;
         }
 
-        // 隨機挑選今天答過的一句話分享（移除自動開啟LINE的語法，讓你手動貼上）
-        let shareText = `🔥 今日刷題完成！\n\n這是我今天的精選句：\n[${cardsData[0].tag}]\n${cardsData[0].context_tw}\n👉 ${cardsData[0].sentence_en}\n\n聽完我的語音，換你囉！`;
+        // 💡 修正：防呆機制，若今日刷題清單為空，給予預設文字
+        let recommendedSentence = (cardsData && cardsData.length > 0) ? cardsData[Math.floor(Math.random() * cardsData.length)] : null;
+        let shareText = "";
+        if (recommendedSentence) {
+            shareText = `🔥 今日刷題完成！\n\n這是我今天的精選句：\n[${recommendedSentence.tag}]\n${recommendedSentence.context_tw}\n👉 ${recommendedSentence.sentence_en}\n\n聽完我的語音，換你囉！`;
+        } else {
+            shareText = `🔥 今日複習進度全數達成！繼續保持口說好習慣！`;
+        }
         document.getElementById("share-text").value = shareText;
+        
+        let continueBtn = document.getElementById("continue-btn");
+        let btnContainer = continueBtn.parentNode;
+        
+        // 移除舊的全域按鈕避免重複產生
+        let oldGlobalBtn = document.getElementById("global-practice-btn");
+        if(oldGlobalBtn) oldGlobalBtn.remove();
+        
+        if (allDueCards && allDueCards.length > 0) {
+            continueBtn.style.display = "block";
+            continueBtn.innerText = `繼續挑戰 (還有 ${allDueCards.length} 題未複習)`;
+            continueBtn.onclick = prepareNextBatch;
+        } else if (sessionHistory && sessionHistory.length > 0) {
+            // 🛑 修復：按鈕文字動態顯示今天剛練過的總題數
+            continueBtn.style.display = "block";
+            continueBtn.innerText = `開啟無盡刷題 (重溫今日剛練過的 ${sessionHistory.length} 句話)`;
+            continueBtn.onclick = startEndlessMode;
+        } else {
+            continueBtn.style.display = "none";
+        }
     }
 
     function copyAndShare() {
@@ -324,6 +446,86 @@
         document.execCommand('copy');
         alert("已複製分享文字！請自行貼上至 LINE 群組。");
     }
+
+    // 新增：無盡刷題模式核心邏輯 (加入弱點優先排序)
+    function startEndlessMode() {
+        let endlessCards = [...sessionHistory];
+        
+        if (endlessCards.length > 0) {
+            
+            // 🌟 排序：將熟練度 (easeFactor) 最低的排在前面優先出現，避免一直複習太簡單的
+            endlessCards.sort((a, b) => {
+                let easeA = parseFloat(a.easeFactor) || 2.5;
+                let easeB = parseFloat(b.easeFactor) || 2.5;
+                return easeA - easeB; 
+            });
+
+            cardsData = endlessCards.map(c => Object.assign({}, c));
+            currentCardIndex = 0;
+            
+            document.getElementById("due-count").innerText = cardsData.length;
+            document.getElementById("new-count").innerText = "無";
+            document.getElementById("review-count").innerText = "盡";
+            
+            let startBtn = document.getElementById("start-btn");
+            startBtn.innerText = "進入無盡複習 🔄";
+            startBtn.style.background = "#4CAF50"; 
+            startBtn.onclick = startReview; 
+            startBtn.style.display = "block";
+            
+            document.getElementById("completion-screen").style.display = "none";
+            document.getElementById("home-screen").style.display = "block";
+        } else {
+            alert("目前沒有可複習的紀錄。");
+        }
+    }
+
+    // 💡 新增：全域練習模式
+    async function startGlobalPractice() {
+        document.getElementById("home-screen").style.display = "none";
+        document.getElementById("completion-screen").style.display = "none";
+        document.getElementById("loading").style.display = "block";
+        document.getElementById("loading").innerText = "讀取全域題庫中...";
+        
+        try {
+            let response = await fetch(API_URL + "?action=getData&mode=practice&token=" + API_TOKEN);
+            let data = await response.json();
+            
+            // 🛑 修復 2：解決「死胡同」斷線問題。如果全域真的沒題目，絕不重新整理！
+            if (!data.cards || data.cards.length === 0) {
+                alert("提示：目前雲端題庫中沒有任何可練習的題目！\n(請確認您的題目沒有全數被標記為 SOS)");
+                document.getElementById("loading").style.display = "none";
+                document.getElementById("completion-screen").style.display = "block"; // 退回結算畫面
+                return;
+            }
+            
+            isPracticeMode = true; 
+            cardsData = data.cards; 
+            currentCardIndex = 0;
+            sessionHistory = []; 
+            
+            // 🛑 修復 3：安全地更新數字
+            document.getElementById("due-count").innerText = cardsData.length;
+            document.getElementById("new-count").innerText = "全";
+            document.getElementById("review-count").innerText = "域";
+            
+            document.getElementById("loading").style.display = "none";
+            
+            let startBtn = document.getElementById("start-btn");
+            startBtn.innerText = "開始全域練習 🚀";
+            startBtn.style.background = "#4CAF50";
+            startBtn.onclick = startReview; 
+            startBtn.style.display = "block";
+            
+            document.getElementById("home-screen").style.display = "block";
+            
+        } catch (error) {
+            alert("讀取失敗，請確認網路與權限。");
+            document.getElementById("loading").style.display = "none";
+            document.getElementById("completion-screen").style.display = "block";
+        }
+    }
+
 </script>
 
 </body>
