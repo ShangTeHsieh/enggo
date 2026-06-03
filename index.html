@@ -80,6 +80,23 @@
         
         #loading { display: none; color: #7f8c8d; font-style: italic; margin-bottom: 15px;}
         #completion-screen { display: none; }
+        
+        /* 🌟 新增：RPG 經驗值面板視覺設計 */
+        .xp-dashboard {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 20px;
+            text-align: left;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .xp-dashboard h3 { margin: 0 0 12px 0; font-size: 1rem; color: #2c3e50; display: flex; align-items: center; gap: 5px; }
+        .xp-row { margin-bottom: 10px; }
+        .xp-label { font-size: 0.85rem; font-weight: bold; color: #555; display: flex; justify-content: space-between; margin-bottom: 4px; }
+        .xp-bar-bg { background: #eaeded; border-radius: 6px; height: 8px; width: 100%; overflow: hidden; }
+        .xp-bar-fill { height: 100%; border-radius: 6px; width: 0%; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+
     </style>
 </head>
 <body>
@@ -101,18 +118,24 @@
             (🆕 新句子: <span id="new-count">0</span> 題 | 🔄 複習: <span id="review-count">0</span> 題)
         </p>
         <button class="btn-start" id="start-btn" onclick="startReview()" style="display:none;">開始挑戰</button>
+        <div id="home-xp-panel"></div>
     </div>
 
     <div id="study-screen" style="display:none;">
         <div id="progress-indicator" style="text-align: right; font-size: 0.9rem; color: #7f8c8d; margin-bottom: 8px; font-weight: bold;">
             剩餘: 0 題
         </div>
+
         <div class="card" id="flashcard" onclick="flipCard()">
             <div id="card-tag" class="tag">標籤</div>
-            <div id="card-question" class="question">載入中...</div>
-            <div id="card-answer" class="answer">載入中...</div>
-            <div style="font-size: 0.8rem; color: #999; margin-top: 10px;" id="click-hint">(點擊卡片看解答並發音)</div>
+            <div id="card-scenario" style="font-size: 0.95rem; color: #7f8c8d; font-weight: normal; margin-bottom: 12px; text-align: left; background: #f8f9fa; padding: 8px; border-radius: 6px; border-left: 4px solid #1976d2;">載入中...</div>
+            <div id="card-chinese" style="font-size: 1.25rem; font-weight: bold; color: #2c3e50; margin-top: 10px; display: none;">載入中...</div>
+            <div id="card-english" style="font-size: 1.2rem; color: #1976d2; margin-top: 15px; font-weight: bold; display: none;">載入中...</div>
+            
+            <div style="font-size: 0.8rem; color: #999; margin-top: 15px;" id="click-hint">(點擊卡片顯示中文)</div>
         </div>
+
+        <button id="btn-reveal" class="btn-start" onclick="revealAnswer()" style="display:none; background:#34495e; margin-bottom: 15px; width: 100%;">👁️ 已經聽懂了，翻面看英文解答</button>
 
         <div class="btn-group" id="score-btns">
             <button style="background:#f39c12;" onclick="scoreCard('repeat')">不熟<br>(重來)</button>
@@ -120,16 +143,21 @@
             <button class="btn-easy" onclick="scoreCard('easy')">太簡單<br>(大延後)</button>
             <button style="background:#9b59b6;" onclick="scoreCard('sos')">SOS<br>(隔離)</button>
         </div>
+
     </div>
 
     <!-- 完成區塊 -->
-    <div id="completion-screen">
+    <div id="completion-screen" style="display: none;">
         <h2>🎉 任務完成！</h2>
         <p>今日額度已達成，請將今日最有感的一句話分享到 LINE 群組並錄音！</p>
-        <textarea id="share-text" style="width: 100%; height: 80px; margin-bottom: 10px; padding: 10px; border-radius: 5px; border: 1px solid #ccc;" readonly></textarea>
+        
+        <textarea id="share-text" style="width: 100%; height: 250px; margin-bottom: 10px; padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-family: inherit; font-size: 0.85rem; line-height: 1.5; resize: none; box-sizing: border-box;" readonly></textarea>
+        
         <button class="btn-start" onclick="copyAndShare()" style="margin-bottom: 10px;">複製文字，自行貼至 LINE</button>
-        <button class="btn-start" id="continue-btn" onclick="prepareNextBatch()" style="background: #f39c12; display: none;">繼續複習</button>
+        <button class="btn-start" id="continue-btn" style="background: #f39c12; display: none;">繼續複習</button>
         <button class="btn-start" onclick="startGlobalPractice()" style="background: #2980b9; margin-top: 10px;">進入全域練習模式 (無視進度，刷到爽)</button>
+        
+        <div id="completion-xp-panel"></div>
     </div>
 </div>
 
@@ -145,7 +173,9 @@
     let currentCardIndex = 0;
     let cardState = 0; 
     let isPracticeMode = false; // 💡 判定目前是否為全域練習模式
-    const DAILY_CAP = 15;
+    let globalAllCards = []; // 💡 用來存放從雲端抓下來的「一整顆完整題庫」
+
+    const DAILY_CAP = 10;
 
     function getLocalDateString(dateObj = new Date()) {
         let year = dateObj.getFullYear();
@@ -154,28 +184,36 @@
         return `${year}-${month}-${day}`;
     }
 
-    window.onload = async function() {
+   window.onload = async function() {
         document.getElementById("loading").style.display = "block";
         try {
-            let response = await fetch(API_URL + "?action=getData&token=" + API_TOKEN);
+            // 💡 究極優化：初始化直接抓取全域題庫，這樣首頁才能計算出「全單字庫」的生涯總經驗值！
+            let response = await fetch(API_URL + "?action=getData&mode=practice&token=" + API_TOKEN);
             let data = await response.json();
             
             statsData = data.stats;
-            allDueCards = data.cards; 
+            globalAllCards = data.cards || []; // 把全題庫永久存下來
             
             document.getElementById("streak-count").innerText = statsData.streak || 0;
             document.getElementById("freeze-count").innerText = statsData.freezeTokens || 0;
             
+            // 💡 在前端依據日期自動過濾出「今日真正該待辦複習」的卡片
+            let todayStr = getLocalDateString();
+            allDueCards = globalAllCards.filter(card => {
+                return !card.nextReviewDate || card.nextReviewDate === "" || card.nextReviewDate <= todayStr;
+            });
+            
+            // 🌟 首頁立刻渲染「生涯全題庫總經驗值面板」！
+            renderXPDashboard("home-xp-panel", globalAllCards);
+            
             if(allDueCards && allDueCards.length > 0) {
                 prepareNextBatch();
             } else {
-                // 🛑 修復 1：不破壞網頁結構，安全地更新文字
                 document.getElementById("loading").style.display = "none";
                 document.getElementById("due-count").innerText = "0";
                 document.getElementById("new-count").innerText = "0";
                 document.getElementById("review-count").innerText = "0";
                 
-                // 將原本的開始按鈕，改造為「全域練習」按鈕
                 let startBtn = document.getElementById("start-btn");
                 startBtn.innerText = "無待辦進度，點此進入全域練習 🚀";
                 startBtn.style.background = "#2980b9";
@@ -228,44 +266,57 @@
             return;
         }
         
-        cardState = 0; // 每換下一題，狀態歸零
+        cardState = 0; 
         let card = cardsData[currentCardIndex];
         
-        // 更新剩餘題數
         let remaining = cardsData.length - currentCardIndex;
         document.getElementById("progress-indicator").innerText = `剩餘: ${remaining} 題`;
-        
-        // 判斷是新句子還是複習
         let isNew = (!card.interval || card.interval == 0);
         let statusIcon = isNew ? "🆕 新學習 | " : "🔄 複習 | ";
         
         document.getElementById("card-tag").innerText = statusIcon + (card.tag || "一般情境");
-        document.getElementById("card-question").innerText = card.context_tw;
-        document.getElementById("card-answer").innerText = card.sentence_en;
         
-        document.getElementById("card-answer").style.display = "none";
+        // 載入文字
+        document.getElementById("card-scenario").innerText = "🎬 情境：" + card.scenario_tw;
+        document.getElementById("card-chinese").innerHTML = "🗣️ 請看著中文試說：<br>" + card.context_tw;
+        document.getElementById("card-english").innerText = card.sentence_en;
+        
+        // 初始狀態：只秀情境，隱藏其他所有東西
+        document.getElementById("card-chinese").style.display = "none";
+        document.getElementById("card-english").style.display = "none";
+        document.getElementById("btn-reveal").style.display = "none";
         document.getElementById("score-btns").style.display = "none";
-        document.getElementById("click-hint").innerText = "(點擊卡片進入盲聽模式 🔊)";
+        
+        document.getElementById("click-hint").innerText = "(點擊卡片顯示中文翻譯 📖)";
         document.getElementById("click-hint").style.display = "block";
     }
 
     // 盲聽影子跟讀核心邏輯
     function flipCard() {
         if (cardState === 0) {
-            // 第一次點擊：盲聽模式 (播音但不秀字)
+            // 階段 1 -> 階段 2: 顯示中文
+            document.getElementById("card-chinese").style.display = "block";
+            document.getElementById("click-hint").innerText = "(點擊卡片進入盲聽模式 🔊)";
             cardState = 1;
-            document.getElementById("click-hint").innerText = "(試著跟讀，再次點擊顯示解答 📖)";
-            playAudio();
         } else if (cardState === 1) {
-            // 第二次點擊：顯示解答與評分按鈕
+            // 階段 2 -> 階段 3: 播放音效，不秀英文，亮出獨立翻面按鈕
+            playAudio();
+            document.getElementById("btn-reveal").style.display = "block";
+            document.getElementById("click-hint").innerText = "(聽不清楚？點擊卡片可重複聆聽 🔊)";
             cardState = 2;
-            document.getElementById("card-answer").style.display = "block";
-            document.getElementById("score-btns").style.display = "flex";
-            document.getElementById("click-hint").innerText = "(點擊卡片可再次聆聽發音 🔊)";
-        } else if (cardState === 2) {
-            // 第三次以上點擊：單純重播發音
+        } else if (cardState >= 2) {
+            // 階段 3 之後：點擊卡片純粹重播音效，不影響其他畫面
             playAudio();
         }
+    }
+
+    // 階段 4: 點擊獨立按鈕後，真正揭曉答案並給分
+    function revealAnswer() {
+        document.getElementById("btn-reveal").style.display = "none";
+        document.getElementById("card-english").style.display = "block";
+        document.getElementById("score-btns").style.display = "flex";
+        document.getElementById("click-hint").innerText = "(點擊卡片可再次聆聽 🔊)";
+        cardState = 3;
     }
 
     // 獨立出播放聲音的功能
@@ -349,11 +400,9 @@
         document.getElementById("completion-screen").style.display = "block";
         
         let todayStr = getLocalDateString(); 
-        
         let currentStreak = parseInt(statsData.streak) || 0;
         let freezeTokens = parseInt(statsData.freezeTokens) || 2;
         let lastLoginStr = statsData.lastLoginDate;
-        
         let updateStats = false;
         
         if (lastLoginStr !== todayStr) {
@@ -367,11 +416,9 @@
                 
                 if (diffDays === 1) {
                     currentStreak += 1;
-                    if (currentStreak % 7 === 0) {
-                        if (freezeTokens < 3) {
-                            freezeTokens += 1;
-                            alert(`🎉 太神啦！連續刷題 ${currentStreak} 天！\n系統獎勵您 1 面免死金牌 🛡️！`);
-                        }
+                    if (currentStreak % 7 === 0 && freezeTokens < 3) {
+                        freezeTokens += 1;
+                        alert(`🎉 太神啦！連續刷題 ${currentStreak} 天！\n系統獎勵您 1 面免死金牌 🛡️！`);
                     }
                 } else if (diffDays > 1) {
                     if (freezeTokens > 0) {
@@ -388,7 +435,6 @@
         }
 
         if (updateStats) {
-            // 🐛 關鍵修復：這裡原本漏了 token，導致 Google Sheets 拒絕寫入
             fetch(API_URL, {
                 method: 'POST',
                 body: JSON.stringify({
@@ -409,18 +455,29 @@
             document.getElementById("freeze-count").innerText = freezeTokens;
         }
 
-        // 💡 修正：防呆機制，若今日刷題清單為空，給予預設文字
-        let recommendedSentence = (cardsData && cardsData.length > 0) ? cardsData[Math.floor(Math.random() * cardsData.length)] : null;
+        // 精選句挑選邏輯 (防重複)
+        let recommendedSentence = null;
+        if (sessionHistory && sessionHistory.length > 0) {
+            let recentShared = JSON.parse(localStorage.getItem('recentSharedIds') || '[]');
+            let availableCards = sessionHistory.filter(c => !recentShared.includes(c.id));
+            if (availableCards.length === 0) availableCards = [...sessionHistory];
+            availableCards.sort((a, b) => (parseFloat(a.easeFactor) || 2.5) - (parseFloat(b.easeFactor) || 2.5));
+            recommendedSentence = availableCards[0];
+            
+            recentShared.push(recommendedSentence.id);
+            if (recentShared.length > 15) recentShared.shift();
+            localStorage.setItem('recentSharedIds', JSON.stringify(recentShared));
+        }
+
         let shareText = "";
         if (recommendedSentence) {
-            shareText = `🔥 今日刷題完成！\n\n這是我今天的精選句：\n[${recommendedSentence.tag}]\n${recommendedSentence.context_tw}\n👉 ${recommendedSentence.sentence_en}\n\n聽完我的語音，換你囉！`;
+            shareText = `🔥 今日刷題完成！\n\n這是我今天的精選句：\n[${recommendedSentence.tag}]\n🎬 情境：${recommendedSentence.scenario_tw}\n🗣️ ${recommendedSentence.context_tw}\n👉 ${recommendedSentence.sentence_en}\n\n聽完我的語音，換你囉！`;
         } else {
             shareText = `🔥 今日複習進度全數達成！繼續保持口說好習慣！`;
         }
         document.getElementById("share-text").value = shareText;
         
         let continueBtn = document.getElementById("continue-btn");
-        let btnContainer = continueBtn.parentNode;
         
         // 移除舊的全域按鈕避免重複產生
         let oldGlobalBtn = document.getElementById("global-practice-btn");
@@ -431,13 +488,15 @@
             continueBtn.innerText = `繼續挑戰 (還有 ${allDueCards.length} 題未複習)`;
             continueBtn.onclick = prepareNextBatch;
         } else if (sessionHistory && sessionHistory.length > 0) {
-            // 🛑 修復：按鈕文字動態顯示今天剛練過的總題數
             continueBtn.style.display = "block";
             continueBtn.innerText = `開啟無盡刷題 (重溫今日剛練過的 ${sessionHistory.length} 句話)`;
             continueBtn.onclick = startEndlessMode;
         } else {
             continueBtn.style.display = "none";
         }
+        
+        // 🌟 結算畫面同樣渲染「全題庫生涯總經驗值面板」，讓你看見今天練習完後，整體實力增長的大盤勢！
+        renderXPDashboard("completion-xp-panel", globalAllCards);
     }
 
     function copyAndShare() {
@@ -518,11 +577,64 @@
             startBtn.style.display = "block";
             
             document.getElementById("home-screen").style.display = "block";
+            renderXPDashboard("home-xp-panel", cardsData);
             
         } catch (error) {
             alert("讀取失敗，請確認網路與權限。");
             document.getElementById("loading").style.display = "none";
             document.getElementById("completion-screen").style.display = "block";
+        }
+    }
+
+    // 🌟 升級防禦版：計算當前題庫並渲染 XP 經驗值成就條
+    function renderXPDashboard(targetPanelId, cardsArray) {
+        if (!cardsArray || cardsArray.length === 0) return;
+        
+        let seed = 0;   // Interval = 0
+        let iron = 0;   // Interval 1~3
+        let bronze = 0; // Interval 4~14
+        let gold = 0;   // Interval > 14
+        
+        cardsArray.forEach(c => {
+            let iv = parseFloat(c.interval) || 0;
+            if (iv === 0) seed++;
+            else if (iv >= 1 && iv <= 3) iron++;
+            else if (iv >= 4 && iv <= 14) bronze++;
+            else if (iv > 14) gold++;
+        });
+        
+        let total = cardsArray.length;
+        let pSeed = ((seed / total) * 100).toFixed(0);
+        let pIron = ((iron / total) * 100).toFixed(0);
+        let pBronze = ((bronze / total) * 100).toFixed(0);
+        let pGold = ((gold / total) * 100).toFixed(0);
+        
+        let html = `
+            <div class="xp-dashboard">
+                <h3>📊 記憶成就階級 (總計 ${total} 句)</h3>
+                <div class="xp-row">
+                    <div class="xp-label"><span>🌱 生疏種子 (待灌溉)</span> <span>${seed} 句 (${pSeed}%)</span></div>
+                    <div class="xp-bar-bg"><div class="xp-bar-fill" style="background: #e67e22; width: ${pSeed}%"></div></div>
+                </div>
+                <div class="xp-row">
+                    <div class="xp-label"><span>🔥 加強磨練 (大腦拉扯中)</span> <span>${iron} 句 (${pIron}%)</span></div>
+                    <div class="xp-bar-bg"><div class="xp-bar-fill" style="background: #f1c40f; width: ${pIron}%"></div></div>
+                </div>
+                <div class="xp-row">
+                    <div class="xp-label"><span>🛡️ 精熟穩固 (長期迴路)</span> <span>${bronze} 句 (${pBronze}%)</span></div>
+                    <div class="xp-bar-bg"><div class="xp-bar-fill" style="background: #2ecc71; width: ${pBronze}%"></div></div>
+                </div>
+                <div class="xp-row">
+                    <div class="xp-label"><span>👑 永恆難忘 (化為直覺)</span> <span>${gold} 句 (${pGold}%)</span></div>
+                    <div class="xp-bar-bg"><div class="xp-bar-fill" style="background: #9b59b6; width: ${pGold}%"></div></div>
+                </div>
+            </div>
+        `;
+        
+        // 💡 防呆安全檢查：如果找不到對應的 HTML 容器，就安靜退出，絕不讓網頁卡死報錯
+        let targetPanel = document.getElementById(targetPanelId);
+        if (targetPanel) {
+            targetPanel.innerHTML = html;
         }
     }
 
