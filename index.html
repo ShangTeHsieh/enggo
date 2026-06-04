@@ -81,6 +81,14 @@
         #loading { display: none; color: #7f8c8d; font-style: italic; margin-bottom: 15px;}
         #completion-screen { display: none; }
         
+        /* 登入大廳樣式 */
+        #login-screen { text-align: center; margin-top: 30px; }
+        .role-btn { display: block; width: 100%; padding: 15px; margin-bottom: 15px; border-radius: 12px; font-size: 1.1rem; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; color: white;}
+        .role-derek { background: #2c3e50; }
+        .role-joanna { background: #e74c3c; }
+        .role-guest { background: #95a5a6; }
+        .role-btn:hover { opacity: 0.9; transform: translateY(-2px); }
+
         /* 🌟 新增：RPG 經驗值面板視覺設計 */
         .xp-dashboard {
             background: #fff;
@@ -111,14 +119,24 @@
 
     <div id="loading">讀取題庫中，請稍候...</div>
 
-    <!-- 首頁區塊 -->
-    <div id="home-screen">
+    <div id="login-screen" style="display:none;">
+        <h2 style="color: #2c3e50; margin-bottom: 20px;">請選擇您的身份</h2>
+        <button class="role-btn role-derek" onclick="selectUser('Derek')">👑 Derek (機場專案與日常)</button>
+        <button class="role-btn role-joanna" onclick="selectUser('Joanna')">💍 Joanna (專屬學習進度)</button>
+        <button class="role-btn role-guest" onclick="selectUser('Guest')">🌍 訪客模式 (純體驗不存檔)</button>
+    </div>
+
+    <div id="home-screen" style="display:none;">
         <p>今日待複習：<span id="due-count" style="font-weight:bold; color:#e53935; font-size:1.2rem;">0</span> 題</p>
         <p style="font-size: 0.9rem; color: #555; margin-bottom: 20px;">
             (🆕 新句子: <span id="new-count">0</span> 題 | 🔄 複習: <span id="review-count">0</span> 題)
         </p>
         <button class="btn-start" id="start-btn" onclick="startReview()" style="display:none;">開始挑戰</button>
         <div id="home-xp-panel"></div>
+        <div id="home-xp-panel"></div>
+        <div style="text-align: center; margin-top: 25px;">
+            <a href="#" onclick="logoutUser()" style="color: #95a5a6; font-size: 0.85rem; text-decoration: underline;">切換帳號 / 登出</a>
+        </div>
     </div>
 
     <div id="study-screen" style="display:none;">
@@ -158,6 +176,9 @@
         <button class="btn-start" onclick="startGlobalPractice()" style="background: #2980b9; margin-top: 10px;">進入全域練習模式 (無視進度，刷到爽)</button>
         
         <div id="completion-xp-panel"></div>
+        <div style="text-align: center; margin-top: 25px;">
+            <a href="#" onclick="logoutUser()" style="color: #95a5a6; font-size: 0.85rem; text-decoration: underline;">切換帳號 / 登出</a>
+        </div>
     </div>
 </div>
 
@@ -165,6 +186,13 @@
 
     const API_URL = "https://script.google.com/macros/s/AKfycbynSXDVVI2Y7N5CCKEOwsWiEF3PM5Ib97D4VC_71VeqSoaMrx0-TpY6gzwkBz_m8NMddA/exec";
     const API_TOKEN = "derek_srs_2026"; // 🛡️ 你的專屬鑰匙
+    
+    // 🔒 安全防護：設定你跟 Joanna 的專屬密碼
+    const USER_PASSWORDS = {
+        "Derek": "0000",
+        "Joanna": "0000"
+    };
+    let currentUser = ""; // 🌟 紀錄當前登入者
     
     let allDueCards = []; 
     let cardsData = [];
@@ -184,26 +212,53 @@
         return `${year}-${month}-${day}`;
     }
 
-   window.onload = async function() {
+   window.onload = function() {
+        document.getElementById("loading").style.display = "none";
+        let savedUser = localStorage.getItem('srs_saved_user');
+        if (savedUser) {
+            selectUser(savedUser, true);
+        } else {
+            document.getElementById("login-screen").style.display = "block";
+        }
+    };
+
+    async function selectUser(role, skipAuth = false) {
+        if (role !== 'Guest' && !skipAuth) {
+            let pwd = prompt(`請輸入 ${role} 的專屬密碼：`);
+            if (pwd !== USER_PASSWORDS[role]) {
+                alert("❌ 密碼錯誤！請重新輸入。");
+                return; 
+            }
+            localStorage.setItem('srs_saved_user', role);
+        }
+
+        currentUser = role;
+        document.getElementById("login-screen").style.display = "none";
         document.getElementById("loading").style.display = "block";
+        document.getElementById("loading").innerText = `正在為 ${role} 準備專屬題庫...`;
+
+        let fetchUser = (role === 'Guest') ? 'Derek' : role;
+
         try {
-            // 💡 究極優化：初始化直接抓取全域題庫，這樣首頁才能計算出「全單字庫」的生涯總經驗值！
-            let response = await fetch(API_URL + "?action=getData&mode=practice&token=" + API_TOKEN);
+            let response = await fetch(API_URL + "?action=getData&mode=practice&user=" + fetchUser + "&token=" + API_TOKEN);
             let data = await response.json();
             
             statsData = data.stats;
-            globalAllCards = data.cards || []; // 把全題庫永久存下來
+            globalAllCards = data.cards || []; 
+
+            if (currentUser === 'Guest') {
+                globalAllCards.forEach(c => { c.interval = 0; c.easeFactor = 2.5; c.nextReviewDate = ""; });
+                statsData = { streak: 0, freezeTokens: 0, lastLoginDate: "" };
+            }
             
             document.getElementById("streak-count").innerText = statsData.streak || 0;
             document.getElementById("freeze-count").innerText = statsData.freezeTokens || 0;
             
-            // 💡 在前端依據日期自動過濾出「今日真正該待辦複習」的卡片
             let todayStr = getLocalDateString();
             allDueCards = globalAllCards.filter(card => {
                 return !card.nextReviewDate || card.nextReviewDate === "" || card.nextReviewDate <= todayStr;
             });
             
-            // 🌟 首頁立刻渲染「生涯全題庫總經驗值面板」！
             renderXPDashboard("home-xp-panel", globalAllCards);
             
             if(allDueCards && allDueCards.length > 0) {
@@ -222,13 +277,20 @@
                 
                 document.getElementById("home-screen").style.display = "block";
             }
-            
         } catch (error) {
-            document.getElementById("loading").innerText = "資料讀取失敗，請檢查網路或 API 網址設定。";
+            document.getElementById("loading").innerText = "資料讀取失敗，請檢查網路。";
         }
-    };
+    }
 
-    // 新增：切出下一批 15 題的機制
+    function logoutUser() {
+        let confirmLogout = confirm("確定要登出並切換帳號嗎？");
+        if (confirmLogout) {
+            localStorage.removeItem('srs_saved_user'); 
+            location.reload(); 
+        }
+    }
+
+    // 新增：切出下一批 10 題的機制
     function prepareNextBatch() {
         cardsData = allDueCards.slice(0, DAILY_CAP);
         allDueCards = allDueCards.slice(DAILY_CAP); // 剩下的留在備用庫
@@ -361,19 +423,22 @@
         let formattedDate = getLocalDateString(nextDate);
         
         // 3. 寫回 Google Sheets (🐛 修正：現在不管按什麼，都會確實觸發 API 寫入！)
-        fetch(API_URL, {
-            method: 'POST',
-            body: JSON.stringify({
-                token: API_TOKEN,
-                action: 'updateCard',
-                rowNumber: card.rowNumber,
-                nextReviewDate: formattedDate,
-                interval: interval,
-                isStuck: isStuck,
-                easeFactor: ease
-            }),
-            headers: { 'Content-Type': 'text/plain' }
-        });
+        if (currentUser !== 'Guest') {
+            fetch(API_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    token: API_TOKEN,
+                    user: currentUser, // 🌟 傳遞登入者身份
+                    action: 'updateCard',
+                    rowNumber: card.rowNumber,
+                    nextReviewDate: formattedDate,
+                    interval: interval,
+                    isStuck: isStuck,
+                    easeFactor: ease
+                }),
+                headers: { 'Content-Type': 'text/plain' }
+            });
+        }
 
         // 4. 處理當次歷史紀錄與重來機制
         if (score === 'repeat') {
@@ -434,11 +499,12 @@
             updateStats = true;
         }
 
-        if (updateStats) {
+        if (updateStats && currentUser !== 'Guest') { // 🌟 訪客不寫入
             fetch(API_URL, {
                 method: 'POST',
                 body: JSON.stringify({
                     token: API_TOKEN, 
+                    user: currentUser, // 🌟 傳遞登入者身份
                     action: 'updateStats',
                     lastLoginDate: todayStr,
                     streak: currentStreak,
@@ -547,7 +613,8 @@
         document.getElementById("loading").innerText = "讀取全域題庫中...";
         
         try {
-            let response = await fetch(API_URL + "?action=getData&mode=practice&token=" + API_TOKEN);
+            let fetchUser = (currentUser === 'Guest') ? 'Derek' : currentUser;
+            let response = await fetch(API_URL + "?action=getData&mode=practice&user=" + fetchUser + "&token=" + API_TOKEN);
             let data = await response.json();
             
             // 🛑 修復 2：解決「死胡同」斷線問題。如果全域真的沒題目，絕不重新整理！
