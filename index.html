@@ -2,710 +2,298 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>雙效情境刷題系統</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>全效英語實戰學習中心</title>
     <style>
+        :root {
+            --primary-bg: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-main: #2c3e50;
+            --text-sub: #7f8c8d;
+            --accent-speaking: #3498db;
+            --accent-listen: #9b59b6;
+            --accent-read: #e67e22;
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f6;
-            color: #333;
+            background-color: var(--primary-bg);
+            color: var(--text-main);
             margin: 0;
-            padding: 20px;
+            padding: 20px 15px;
             display: flex;
             flex-direction: column;
             align-items: center;
         }
-        .container {
+
+        .dashboard-container {
             width: 100%;
-            max-width: 400px;
-            background: white;
-            padding: 20px;
+            max-width: 480px; /* 手機與平板適用的舒適寬度 */
+        }
+
+        .header-section {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        h1 {
+            font-size: 1.6rem;
+            margin: 0 0 10px 0;
+            color: var(--text-main);
+            letter-spacing: 1px;
+        }
+
+        /* 身份切換區塊 - 手機好按的大區塊 */
+        .user-selector {
+            background: var(--card-bg);
+            padding: 15px;
             border-radius: 15px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            text-align: center;
-        }
-        h1 { font-size: 1.5rem; color: #2c3e50; }
-        .stats-board {
+            margin-bottom: 25px;
             display: flex;
-            justify-content: space-around;
-            background: #e8f5e9;
-            padding: 10px;
-            border-radius: 10px;
-            margin-bottom: 20px;
+            align-items: center;
+            justify-content: space-between;
         }
-        .stat-item { font-weight: bold; color: #2e7d32; }
-        
-        /* 卡片設計 */
-        .card {
-            background: #ffffff;
-            border: 2px solid #e0e0e0;
+
+        .user-selector label {
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #34495e;
+        }
+
+        select {
+            padding: 10px 15px;
+            font-size: 1.1rem;
+            border: 2px solid #bdc3c7;
             border-radius: 10px;
-            padding: 30px 20px;
-            margin-bottom: 20px;
-            min-height: 150px;
+            background-color: #fff;
+            color: #2c3e50;
+            font-weight: bold;
+            outline: none;
+            cursor: pointer;
+            width: 60%;
+        }
+
+        select:focus {
+            border-color: #3498db;
+        }
+
+        /* 入口按鈕網格 - 兩排設計 */
+        .module-grid {
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
+            gap: 15px;
         }
-        .card:hover { border-color: #4CAF50; }
-        .tag {
-            font-size: 0.8rem;
-            color: white;
-            background: #1976d2;
-            padding: 3px 8px;
-            border-radius: 10px;
-            display: inline-block;
-            margin-bottom: 10px;
-        }
-        .question { font-size: 1.2rem; font-weight: bold; margin-bottom: 15px; }
-        .answer { font-size: 1.2rem; color: #1976d2; display: none; margin-bottom: 10px; }
-        
-        /* 按鈕設計 */
-        .btn-group { display: none; gap: 10px; justify-content: center; }
-        button {
-            padding: 10px 15px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            cursor: pointer;
-            font-weight: bold;
-            color: white;
-        }
-        .btn-start { background: #4CAF50; width: 100%; display: block; }
-        .btn-hard { background: #e53935; flex: 1; }
-        .btn-good { background: #4CAF50; flex: 1; }
-        .btn-easy { background: #1e88e5; flex: 1; }
-        
-        #loading { display: none; color: #7f8c8d; font-style: italic; margin-bottom: 15px;}
-        #completion-screen { display: none; }
-        
-        /* 登入大廳樣式 */
-        #login-screen { text-align: center; margin-top: 30px; }
-        .role-btn { display: block; width: 100%; padding: 15px; margin-bottom: 15px; border-radius: 12px; font-size: 1.1rem; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; color: white;}
-        .role-derek { background: #2c3e50; }
-        .role-joanna { background: #e74c3c; }
-        .role-guest { background: #95a5a6; }
-        .role-btn:hover { opacity: 0.9; transform: translateY(-2px); }
 
-        /* 🌟 新增：RPG 經驗值面板視覺設計 */
-        .xp-dashboard {
-            background: #fff;
-            border: 1px solid #e0e0e0;
-            border-radius: 12px;
-            padding: 15px;
-            margin-top: 20px;
+        /* 大按鈕共用樣式 */
+        .btn-entry {
+            display: flex;
+            align-items: center;
+            padding: 18px 20px;
+            border-radius: 16px;
+            text-decoration: none;
+            background: var(--card-bg);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+            border: 2px solid transparent;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+            /* 讓手機觸控沒有藍色預設高亮 */
+            -webkit-tap-highlight-color: transparent; 
+        }
+
+        /* 手機按壓時的動態回饋 */
+        .btn-entry:active {
+            transform: scale(0.97);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        /* 各模組專屬色彩配置 */
+        .btn-speaking { border-left: 6px solid var(--accent-speaking); }
+        .btn-listen { border-left: 6px solid var(--accent-listen); }
+        .btn-read { border-left: 6px solid var(--accent-read); }
+
+        .btn-icon {
+            font-size: 2rem;
+            margin-right: 15px;
+            min-width: 45px;
+            text-align: center;
+        }
+
+        .btn-text {
+            display: flex;
+            flex-direction: column;
             text-align: left;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
         }
-        .xp-dashboard h3 { margin: 0 0 12px 0; font-size: 1rem; color: #2c3e50; display: flex; align-items: center; gap: 5px; }
-        .xp-row { margin-bottom: 10px; }
-        .xp-label { font-size: 0.85rem; font-weight: bold; color: #555; display: flex; justify-content: space-between; margin-bottom: 4px; }
-        .xp-bar-bg { background: #eaeded; border-radius: 6px; height: 8px; width: 100%; overflow: hidden; }
-        .xp-bar-fill { height: 100%; border-radius: 6px; width: 0%; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
 
+        .btn-title {
+            font-size: 1.15rem;
+            font-weight: bold;
+            color: var(--text-main);
+            margin-bottom: 4px;
+        }
+
+        .btn-subtitle {
+            font-size: 0.85rem;
+            color: var(--text-sub);
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            color: var(--text-sub);
+            margin: 20px 0 10px 5px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+        }
+        
+        .section-title::before {
+            content: '';
+            display: inline-block;
+            width: 15px;
+            height: 3px;
+            background: #bdc3c7;
+            margin-right: 8px;
+            border-radius: 5px;
+        }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>🚀 每日情境刷題</h1>
+<div class="dashboard-container">
     
-    <div class="stats-board">
-        <div class="stat-item">🔥 連續打卡: <span id="streak-count">0</span> 天</div>
-        <div class="stat-item">🛡️ 免死金牌: <span id="freeze-count">2</span> 面</div>
+    <div class="header-section">
+        <h1>全效英語實戰學習中心</h1>
     </div>
 
-    <div id="loading">讀取題庫中，請稍候...</div>
-
-    <div id="login-screen" style="display:none;">
-        <h2 style="color: #2c3e50; margin-bottom: 20px;">請選擇您的身份</h2>
-        <button class="role-btn role-derek" onclick="selectUser('Derek')">👑 Derek (機場專案與日常)</button>
-        <button class="role-btn role-joanna" onclick="selectUser('Joanna')">💍 Joanna (專屬學習進度)</button>
-        <button class="role-btn role-guest" onclick="selectUser('Guest')">🌍 訪客模式 (純體驗不存檔)</button>
+    <div class="user-selector">
+        <label for="currentUser">當前使用者：</label>
+        <select id="currentUser">
+            <option value="Derek">Derek</option>
+            <option value="Joanna">Joanna</option>
+            <option value="Guest">訪客模式 (不記錄)</option>
+        </select>
     </div>
 
-    <div id="home-screen" style="display:none;">
-        <p>今日待複習：<span id="due-count" style="font-weight:bold; color:#e53935; font-size:1.2rem;">0</span> 題</p>
-        <p style="font-size: 0.9rem; color: #555; margin-bottom: 20px;">
-            (🆕 新句子: <span id="new-count">0</span> 題 | 🔄 複習: <span id="review-count">0</span> 題)
-        </p>
-        <button class="btn-start" id="start-btn" onclick="startReview()" style="display:none;">開始挑戰</button>
-        <div id="home-xp-panel"></div>
-        <div id="home-xp-panel"></div>
-        <div style="text-align: center; margin-top: 25px;">
-            <a href="#" onclick="logoutUser()" style="color: #95a5a6; font-size: 0.85rem; text-decoration: underline;">切換帳號 / 登出</a>
-        </div>
-    </div>
-
-    <div id="study-screen" style="display:none;">
-        <div id="progress-indicator" style="text-align: right; font-size: 0.9rem; color: #7f8c8d; margin-bottom: 8px; font-weight: bold;">
-            剩餘: 0 題
-        </div>
-
-        <div class="card" id="flashcard" onclick="flipCard()">
-            <div id="card-tag" class="tag">標籤</div>
-            <div id="card-scenario" style="font-size: 0.95rem; color: #7f8c8d; font-weight: normal; margin-bottom: 12px; text-align: left; background: #f8f9fa; padding: 8px; border-radius: 6px; border-left: 4px solid #1976d2;">載入中...</div>
-            <div id="card-chinese" style="font-size: 1.25rem; font-weight: bold; color: #2c3e50; margin-top: 10px; display: none;">載入中...</div>
-            <div id="card-english" style="font-size: 1.2rem; color: #1976d2; margin-top: 15px; font-weight: bold; display: none;">載入中...</div>
-            
-            <div style="font-size: 0.8rem; color: #999; margin-top: 15px;" id="click-hint">(點擊卡片顯示中文)</div>
-        </div>
-
-        <button id="btn-reveal" class="btn-start" onclick="revealAnswer()" style="display:none; background:#34495e; margin-bottom: 15px; width: 100%;">👁️ 已經聽懂了，翻面看英文解答</button>
-
-        <div class="btn-group" id="score-btns">
-            <button style="background:#f39c12;" onclick="scoreCard('repeat')">不熟<br>(重來)</button>
-            <button class="btn-good" onclick="scoreCard('good')">普通<br>(延長)</button>
-            <button class="btn-easy" onclick="scoreCard('easy')">太簡單<br>(大延後)</button>
-            <button style="background:#9b59b6;" onclick="scoreCard('sos')">SOS<br>(隔離)</button>
-        </div>
-
-    </div>
-
-    <!-- 完成區塊 -->
-    <div id="completion-screen" style="display: none;">
-        <h2>🎉 任務完成！</h2>
-        <p>今日額度已達成，請將今日最有感的一句話分享到 LINE 群組並錄音！</p>
+    <div class="module-grid">
         
-        <textarea id="share-text" style="width: 100%; height: 250px; margin-bottom: 10px; padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-family: inherit; font-size: 0.85rem; line-height: 1.5; resize: none; box-sizing: border-box;" readonly></textarea>
+        <div class="section-title">實戰表達訓練</div>
+        <a href="javascript:void(0)" onclick="navigateTo('speaking.html', null)" class="btn-entry btn-speaking">
+            <div class="btn-icon">🌍</div>
+            <div class="btn-text">
+                <span class="btn-title">情境口說實戰</span>
+                <span class="btn-subtitle">突破語感 ‧ 打造直覺反應迴路</span>
+            </div>
+        </a>
+
+        <div class="section-title">多益聽力特訓 (Listening)</div>
         
-        <button class="btn-start" onclick="copyAndShare()" style="margin-bottom: 10px;">複製文字，自行貼至 LINE</button>
-        <button class="btn-start" id="continue-btn" style="background: #f39c12; display: none;">繼續複習</button>
-        <button class="btn-start" onclick="startGlobalPractice()" style="background: #2980b9; margin-top: 10px;">進入全域練習模式 (無視進度，刷到爽)</button>
-        
-        <div id="completion-xp-panel"></div>
-        <div style="text-align: center; margin-top: 25px;">
-            <a href="#" onclick="logoutUser()" style="color: #95a5a6; font-size: 0.85rem; text-decoration: underline;">切換帳號 / 登出</a>
-        </div>
+        <a href="javascript:void(0)" onclick="navigateTo('toeic.html', 'Part1')" class="btn-entry btn-listen">
+            <div class="btn-icon">👁️</div>
+            <div class="btn-text">
+                <span class="btn-title">Part 1 影像辨識</span>
+                <span class="btn-subtitle">照片描述 ‧ 敏銳捕捉畫面細節</span>
+            </div>
+        </a>
+
+        <a href="javascript:void(0)" onclick="navigateTo('toeic.html', 'Part2')" class="btn-entry btn-listen">
+            <div class="btn-icon">⚡</div>
+            <div class="btn-text">
+                <span class="btn-title">Part 2 瞬效聽解</span>
+                <span class="btn-subtitle">應答問題 ‧ 鍛鍊直覺秒殺能力</span>
+            </div>
+        </a>
+
+        <a href="javascript:void(0)" onclick="navigateTo('toeic.html', 'Part3')" class="btn-entry btn-listen">
+            <div class="btn-icon">🤝</div>
+            <div class="btn-text">
+                <span class="btn-title">Part 3 商務對談</span>
+                <span class="btn-subtitle">簡短對話 ‧ 商業邏輯與意圖拆解</span>
+            </div>
+        </a>
+
+        <a href="javascript:void(0)" onclick="navigateTo('toeic.html', 'Part4')" class="btn-entry btn-listen">
+            <div class="btn-icon">📣</div>
+            <div class="btn-text">
+                <span class="btn-title">Part 4 獨白解析</span>
+                <span class="btn-subtitle">廣播公告 ‧ 高效擷取核心資訊</span>
+            </div>
+        </a>
+
+        <div class="section-title">多益閱讀特訓 (Reading)</div>
+
+        <a href="javascript:void(0)" onclick="navigateTo('toeic.html', 'Part5')" class="btn-entry btn-read">
+            <div class="btn-icon">🧩</div>
+            <div class="btn-text">
+                <span class="btn-title">Part 5 結構填空</span>
+                <span class="btn-subtitle">單字文法 ‧ 穩健鞏固得分基礎</span>
+            </div>
+        </a>
+
+        <a href="javascript:void(0)" onclick="navigateTo('toeic.html', 'Part6')" class="btn-entry btn-read">
+            <div class="btn-icon">🔗</div>
+            <div class="btn-text">
+                <span class="btn-title">Part 6 語意連貫</span>
+                <span class="btn-subtitle">段落克漏 ‧ 強化上下文推論力</span>
+            </div>
+        </a>
+
+        <a href="javascript:void(0)" onclick="navigateTo('toeic.html', 'Part7')" class="btn-entry btn-read">
+            <div class="btn-icon">📖</div>
+            <div class="btn-text">
+                <span class="btn-title">Part 7 長篇破解</span>
+                <span class="btn-subtitle">閱讀測驗 ‧ 跨篇章資訊交叉統整</span>
+            </div>
+        </a>
+
     </div>
 </div>
 
 <script>
-
-    const API_URL = "https://script.google.com/macros/s/AKfycbynSXDVVI2Y7N5CCKEOwsWiEF3PM5Ib97D4VC_71VeqSoaMrx0-TpY6gzwkBz_m8NMddA/exec";
-    const API_TOKEN = "derek_srs_2026"; // 🛡️ 你的專屬鑰匙
-    
-    // 🔒 安全防護：設定你跟 Joanna 的專屬密碼
+    // 🔒 安全防護：設定專屬密碼
     const USER_PASSWORDS = {
         "Derek": "0000",
         "Joanna": "0000"
     };
-    let currentUser = ""; // 🌟 紀錄當前登入者
-    
-    let allDueCards = []; 
-    let cardsData = [];
-    let statsData = {};
-    let sessionHistory = [];
-    let currentCardIndex = 0;
-    let cardState = 0; 
-    let isPracticeMode = false; // 💡 判定目前是否為全域練習模式
-    let globalAllCards = []; // 💡 用來存放從雲端抓下來的「一整顆完整題庫」
 
-    const DAILY_CAP = 10;
-
-    function getLocalDateString(dateObj = new Date()) {
-        let year = dateObj.getFullYear();
-        let month = String(dateObj.getMonth() + 1).padStart(2, '0');
-        let day = String(dateObj.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    }
-
-   window.onload = function() {
-        document.getElementById("loading").style.display = "none";
-        let savedUser = localStorage.getItem('srs_saved_user');
-        if (savedUser) {
-            selectUser(savedUser, true);
-        } else {
-            document.getElementById("login-screen").style.display = "block";
-        }
-    };
-
-    async function selectUser(role, skipAuth = false) {
-        if (role !== 'Guest' && !skipAuth) {
-            let pwd = prompt(`請輸入 ${role} 的專屬密碼：`);
-            if (pwd !== USER_PASSWORDS[role]) {
-                alert("❌ 密碼錯誤！請重新輸入。");
-                return; 
-            }
-            localStorage.setItem('srs_saved_user', role);
-        }
-
-        currentUser = role;
-        document.getElementById("login-screen").style.display = "none";
-        document.getElementById("loading").style.display = "block";
-        document.getElementById("loading").innerText = `正在為 ${role} 準備專屬題庫...`;
-
-        let fetchUser = (role === 'Guest') ? 'Derek' : role;
-
-        try {
-            let response = await fetch(API_URL + "?action=getData&mode=practice&user=" + fetchUser + "&token=" + API_TOKEN);
-            let data = await response.json();
-            
-            statsData = data.stats;
-            globalAllCards = data.cards || []; 
-
-            if (currentUser === 'Guest') {
-                globalAllCards.forEach(c => { c.interval = 0; c.easeFactor = 2.5; c.nextReviewDate = ""; });
-                statsData = { streak: 0, freezeTokens: 0, lastLoginDate: "" };
-            }
-            
-            document.getElementById("streak-count").innerText = statsData.streak || 0;
-            document.getElementById("freeze-count").innerText = statsData.freezeTokens || 0;
-            
-            let todayStr = getLocalDateString();
-            allDueCards = globalAllCards.filter(card => {
-                return !card.nextReviewDate || card.nextReviewDate === "" || card.nextReviewDate <= todayStr;
-            });
-            
-            renderXPDashboard("home-xp-panel", globalAllCards);
-            
-            if(allDueCards && allDueCards.length > 0) {
-                prepareNextBatch();
-            } else {
-                document.getElementById("loading").style.display = "none";
-                document.getElementById("due-count").innerText = "0";
-                document.getElementById("new-count").innerText = "0";
-                document.getElementById("review-count").innerText = "0";
-                
-                let startBtn = document.getElementById("start-btn");
-                startBtn.innerText = "無待辦進度，點此進入全域練習 🚀";
-                startBtn.style.background = "#2980b9";
-                startBtn.onclick = startGlobalPractice; 
-                startBtn.style.display = "block";
-                
-                document.getElementById("home-screen").style.display = "block";
-            }
-        } catch (error) {
-            document.getElementById("loading").innerText = "資料讀取失敗，請檢查網路。";
-        }
-    }
-
-    function logoutUser() {
-        let confirmLogout = confirm("確定要登出並切換帳號嗎？");
-        if (confirmLogout) {
-            localStorage.removeItem('srs_saved_user'); 
-            location.reload(); 
-        }
-    }
-
-    // 新增：切出下一批 10 題的機制
-    function prepareNextBatch() {
-        cardsData = allDueCards.slice(0, DAILY_CAP);
-        allDueCards = allDueCards.slice(DAILY_CAP); // 剩下的留在備用庫
-        currentCardIndex = 0; // 索引歸零
+    // 智慧路由功能與密碼鎖
+    function navigateTo(targetPage, part) {
+        const user = document.getElementById('currentUser').value;
         
-        let newCardsCount = cardsData.filter(c => !c.interval || c.interval == 0).length;
-        let reviewCardsCount = cardsData.length - newCardsCount;
-        
-        document.getElementById("streak-count").innerText = statsData.streak || 0;
-        document.getElementById("freeze-count").innerText = statsData.freezeTokens || 0;
-        document.getElementById("due-count").innerText = cardsData.length;
-        document.getElementById("new-count").innerText = newCardsCount;
-        document.getElementById("review-count").innerText = reviewCardsCount;
-        
-        document.getElementById("loading").style.display = "none";
-        document.getElementById("completion-screen").style.display = "none";
-        document.getElementById("home-screen").style.display = "block";
-        
-        if(cardsData.length > 0) {
-            document.getElementById("start-btn").style.display = "block";
-        } else {
-            document.getElementById("home-screen").innerHTML = "<p>太棒了！今天沒有需要複習的題目了，好好休息吧！🍻</p>";
-        }
-    }
-
-    function startReview() {
-        document.getElementById("home-screen").style.display = "none";
-        document.getElementById("study-screen").style.display = "block";
-        loadCard();
-    }
-
-    function loadCard() {
-        if (currentCardIndex >= cardsData.length) {
-            finishDailyReview();
-            return;
-        }
-        
-        cardState = 0; 
-        let card = cardsData[currentCardIndex];
-        
-        let remaining = cardsData.length - currentCardIndex;
-        document.getElementById("progress-indicator").innerText = `剩餘: ${remaining} 題`;
-        let isNew = (!card.interval || card.interval == 0);
-        let statusIcon = isNew ? "🆕 新學習 | " : "🔄 複習 | ";
-        
-        document.getElementById("card-tag").innerText = statusIcon + (card.tag || "一般情境");
-        
-        // 載入文字
-        document.getElementById("card-scenario").innerText = "🎬 情境：" + card.scenario_tw;
-        document.getElementById("card-chinese").innerHTML = "🗣️ 請看著中文試說：<br>" + card.context_tw;
-        document.getElementById("card-english").innerText = card.sentence_en;
-        
-        // 初始狀態：只秀情境，隱藏其他所有東西
-        document.getElementById("card-chinese").style.display = "none";
-        document.getElementById("card-english").style.display = "none";
-        document.getElementById("btn-reveal").style.display = "none";
-        document.getElementById("score-btns").style.display = "none";
-        
-        document.getElementById("click-hint").innerText = "(點擊卡片顯示中文翻譯 📖)";
-        document.getElementById("click-hint").style.display = "block";
-    }
-
-    // 盲聽影子跟讀核心邏輯
-    function flipCard() {
-        if (cardState === 0) {
-            // 階段 1 -> 階段 2: 顯示中文
-            document.getElementById("card-chinese").style.display = "block";
-            document.getElementById("click-hint").innerText = "(點擊卡片進入盲聽模式 🔊)";
-            cardState = 1;
-        } else if (cardState === 1) {
-            // 階段 2 -> 階段 3: 播放音效，不秀英文，亮出獨立翻面按鈕
-            playAudio();
-            document.getElementById("btn-reveal").style.display = "block";
-            document.getElementById("click-hint").innerText = "(聽不清楚？點擊卡片可重複聆聽 🔊)";
-            cardState = 2;
-        } else if (cardState >= 2) {
-            // 階段 3 之後：點擊卡片純粹重播音效，不影響其他畫面
-            playAudio();
-        }
-    }
-
-    // 階段 4: 點擊獨立按鈕後，真正揭曉答案並給分
-    function revealAnswer() {
-        document.getElementById("btn-reveal").style.display = "none";
-        document.getElementById("card-english").style.display = "block";
-        document.getElementById("score-btns").style.display = "flex";
-        document.getElementById("click-hint").innerText = "(點擊卡片可再次聆聽 🔊)";
-        cardState = 3;
-    }
-
-    // 獨立出播放聲音的功能
-    function playAudio() {
-        let sentence = cardsData[currentCardIndex].sentence_en;
-        let utterance = new SpeechSynthesisUtterance(sentence);
-        utterance.lang = 'en-US';
-        utterance.rate = 0.9; 
-        window.speechSynthesis.speak(utterance);
-    }
-
-    async function scoreCard(score) {
-        let card = cardsData[currentCardIndex];
-        let interval = parseFloat(card.interval) || 0;
-        let isStuck = 0;
-        let ease = parseFloat(card.easeFactor) || 2.5; 
-
-        // 1. 動態計算間隔與熟練度
-        if (score === 'repeat') {
-            interval = 0;
-            ease = Math.max(1.3, ease - 0.2); // 地板：熟練度最低 1.3 倍，不會變成負數
-        } else if (score === 'sos') {
-            let confirmSOS = confirm("遇到瓶頸了嗎？\n確定要將此題標記為 SOS 嗎？(標記後將暫停出現，請於週末去試算表調整或請 AI 簡化)");
-            if (!confirmSOS) return; 
-            isStuck = 1;
-            interval = 0;
-        } else if (score === 'good') {
-            // 💡 只有選「太簡單」才會增加倍率，選「普通」倍率不變
-            interval = (interval === 0) ? 1 : Math.round(interval * ease);
-        } else if (score === 'easy') {
-            interval = (interval === 0) ? 4 : Math.round(interval * ease * 1.3);
-            ease = Math.min(3.0, ease + 0.15); // 天花板：熟練度倍率最高 3.0
-        }
-        
-        // 🌟 新增：間隔天花板機制 (最多 180 天，確保大約半年一定會再看到一次)
-        interval = Math.min(180, interval);
-        
-        let nextDate = new Date();
-        if(score !== 'sos') {
-            nextDate.setDate(nextDate.getDate() + interval);
-        }
-        let formattedDate = getLocalDateString(nextDate);
-        
-        // 3. 寫回 Google Sheets (🐛 修正：現在不管按什麼，都會確實觸發 API 寫入！)
-        if (currentUser !== 'Guest') {
-            fetch(API_URL, {
-                method: 'POST',
-                body: JSON.stringify({
-                    token: API_TOKEN,
-                    user: currentUser, // 🌟 傳遞登入者身份
-                    action: 'updateCard',
-                    rowNumber: card.rowNumber,
-                    nextReviewDate: formattedDate,
-                    interval: interval,
-                    isStuck: isStuck,
-                    easeFactor: ease
-                }),
-                headers: { 'Content-Type': 'text/plain' }
-            });
-        }
-
-        // 4. 處理當次歷史紀錄與重來機制
-        if (score === 'repeat') {
-            // 如果不熟，把更新過數據的卡片塞到隊尾，強迫今天再看一次
-            let copiedCard = Object.assign({}, card);
-            copiedCard.interval = interval;
-            copiedCard.easeFactor = ease;
-            cardsData.push(copiedCard);
-        } else if (score !== 'sos') {
-            // 過關的才寫入無盡模式歷史紀錄
-            card.lastScore = score;
-            card.easeFactor = ease; // 更新為最新熟練度
-            if (!sessionHistory.some(c => c.rowNumber === card.rowNumber)) {
-                sessionHistory.push(card);
-            }
-        }
-        
-        currentCardIndex++;
-        loadCard();
-    }
-
-    function finishDailyReview() {
-        document.getElementById("study-screen").style.display = "none";
-        document.getElementById("completion-screen").style.display = "block";
-        
-        let todayStr = getLocalDateString(); 
-        let currentStreak = parseInt(statsData.streak) || 0;
-        let freezeTokens = parseInt(statsData.freezeTokens) || 2;
-        let lastLoginStr = statsData.lastLoginDate;
-        let updateStats = false;
-        
-        if (lastLoginStr !== todayStr) {
-            if (!lastLoginStr || lastLoginStr === "") {
-                currentStreak = 1; 
-            } else {
-                let lastLogin = new Date(lastLoginStr);
-                let todayDate = new Date(todayStr); 
-                let diffTime = Math.abs(todayDate - lastLogin);
-                let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                
-                if (diffDays === 1) {
-                    currentStreak += 1;
-                    if (currentStreak % 7 === 0 && freezeTokens < 3) {
-                        freezeTokens += 1;
-                        alert(`🎉 太神啦！連續刷題 ${currentStreak} 天！\n系統獎勵您 1 面免死金牌 🛡️！`);
-                    }
-                } else if (diffDays > 1) {
-                    if (freezeTokens > 0) {
-                        freezeTokens -= 1;
-                        currentStreak += 1; 
-                        alert(`您漏了 ${diffDays - 1} 天沒打卡！已自動消耗 1 面免死金牌 🛡️ 幫您維持紀錄！`);
-                    } else {
-                        currentStreak = 1; 
-                        alert("您漏打卡太久，且免死金牌已用盡，連續紀錄歸零。重新出發吧！💪");
-                    }
+        // 驗證密碼邏輯
+        if (user !== 'Guest') {
+            // 使用 sessionStorage，關掉瀏覽器就自動登出，確保安全
+            let isAuthed = sessionStorage.getItem(`auth_${user}`); 
+            if (!isAuthed) {
+                let pwd = prompt(`請輸入 ${user} 的專屬密碼：`);
+                if (pwd === USER_PASSWORDS[user]) {
+                    sessionStorage.setItem(`auth_${user}`, 'true');
+                } else {
+                    alert("❌ 密碼錯誤！請重新輸入。");
+                    return; // 密碼錯誤則阻擋跳轉
                 }
             }
-            updateStats = true;
         }
 
-        if (updateStats && currentUser !== 'Guest') { // 🌟 訪客不寫入
-            fetch(API_URL, {
-                method: 'POST',
-                body: JSON.stringify({
-                    token: API_TOKEN, 
-                    user: currentUser, // 🌟 傳遞登入者身份
-                    action: 'updateStats',
-                    lastLoginDate: todayStr,
-                    streak: currentStreak,
-                    freezeTokens: freezeTokens
-                }),
-                headers: { 'Content-Type': 'text/plain' }
-            });
-            
-            statsData.lastLoginDate = todayStr;
-            statsData.streak = currentStreak;
-            statsData.freezeTokens = freezeTokens;
-            
-            document.getElementById("streak-count").innerText = currentStreak;
-            document.getElementById("freeze-count").innerText = freezeTokens;
+        // 密碼正確，打包網址傳遞
+        let url = `${targetPage}?user=${encodeURIComponent(user)}`;
+        if (part) {
+            url += `&part=${part}`;
         }
-
-        // 精選句挑選邏輯 (防重複)
-        let recommendedSentence = null;
-        if (sessionHistory && sessionHistory.length > 0) {
-            let recentShared = JSON.parse(localStorage.getItem('recentSharedIds') || '[]');
-            let availableCards = sessionHistory.filter(c => !recentShared.includes(c.id));
-            if (availableCards.length === 0) availableCards = [...sessionHistory];
-            availableCards.sort((a, b) => (parseFloat(a.easeFactor) || 2.5) - (parseFloat(b.easeFactor) || 2.5));
-            recommendedSentence = availableCards[0];
-            
-            recentShared.push(recommendedSentence.id);
-            if (recentShared.length > 15) recentShared.shift();
-            localStorage.setItem('recentSharedIds', JSON.stringify(recentShared));
-        }
-
-        let shareText = "";
-        if (recommendedSentence) {
-            shareText = `🔥 今日刷題完成！\n\n這是我今天的精選句：\n[${recommendedSentence.tag}]\n🎬 情境：${recommendedSentence.scenario_tw}\n🗣️ ${recommendedSentence.context_tw}\n👉 ${recommendedSentence.sentence_en}\n\n聽完我的語音，換你囉！`;
-        } else {
-            shareText = `🔥 今日複習進度全數達成！繼續保持口說好習慣！`;
-        }
-        document.getElementById("share-text").value = shareText;
-        
-        let continueBtn = document.getElementById("continue-btn");
-        
-        // 移除舊的全域按鈕避免重複產生
-        let oldGlobalBtn = document.getElementById("global-practice-btn");
-        if(oldGlobalBtn) oldGlobalBtn.remove();
-        
-        if (allDueCards && allDueCards.length > 0) {
-            continueBtn.style.display = "block";
-            continueBtn.innerText = `繼續挑戰 (還有 ${allDueCards.length} 題未複習)`;
-            continueBtn.onclick = prepareNextBatch;
-        } else if (sessionHistory && sessionHistory.length > 0) {
-            continueBtn.style.display = "block";
-            continueBtn.innerText = `開啟無盡刷題 (重溫今日剛練過的 ${sessionHistory.length} 句話)`;
-            continueBtn.onclick = startEndlessMode;
-        } else {
-            continueBtn.style.display = "none";
-        }
-        
-        // 🌟 結算畫面同樣渲染「全題庫生涯總經驗值面板」，讓你看見今天練習完後，整體實力增長的大盤勢！
-        renderXPDashboard("completion-xp-panel", globalAllCards);
+        window.location.href = url;
     }
 
-    function copyAndShare() {
-        let text = document.getElementById("share-text");
-        text.select();
-        document.execCommand('copy');
-        alert("已複製分享文字！請自行貼上至 LINE 群組。");
-    }
-
-    // 新增：無盡刷題模式核心邏輯 (加入弱點優先排序)
-    function startEndlessMode() {
-        let endlessCards = [...sessionHistory];
-        
-        if (endlessCards.length > 0) {
-            
-            // 🌟 排序：將熟練度 (easeFactor) 最低的排在前面優先出現，避免一直複習太簡單的
-            endlessCards.sort((a, b) => {
-                let easeA = parseFloat(a.easeFactor) || 2.5;
-                let easeB = parseFloat(b.easeFactor) || 2.5;
-                return easeA - easeB; 
-            });
-
-            cardsData = endlessCards.map(c => Object.assign({}, c));
-            currentCardIndex = 0;
-            
-            document.getElementById("due-count").innerText = cardsData.length;
-            document.getElementById("new-count").innerText = "無";
-            document.getElementById("review-count").innerText = "盡";
-            
-            let startBtn = document.getElementById("start-btn");
-            startBtn.innerText = "進入無盡複習 🔄";
-            startBtn.style.background = "#4CAF50"; 
-            startBtn.onclick = startReview; 
-            startBtn.style.display = "block";
-            
-            document.getElementById("completion-screen").style.display = "none";
-            document.getElementById("home-screen").style.display = "block";
-        } else {
-            alert("目前沒有可複習的紀錄。");
-        }
-    }
-
-    // 💡 新增：全域練習模式
-    async function startGlobalPractice() {
-        document.getElementById("home-screen").style.display = "none";
-        document.getElementById("completion-screen").style.display = "none";
-        document.getElementById("loading").style.display = "block";
-        document.getElementById("loading").innerText = "讀取全域題庫中...";
-        
-        try {
-            let fetchUser = (currentUser === 'Guest') ? 'Derek' : currentUser;
-            let response = await fetch(API_URL + "?action=getData&mode=practice&user=" + fetchUser + "&token=" + API_TOKEN);
-            let data = await response.json();
-            
-            // 🛑 修復 2：解決「死胡同」斷線問題。如果全域真的沒題目，絕不重新整理！
-            if (!data.cards || data.cards.length === 0) {
-                alert("提示：目前雲端題庫中沒有任何可練習的題目！\n(請確認您的題目沒有全數被標記為 SOS)");
-                document.getElementById("loading").style.display = "none";
-                document.getElementById("completion-screen").style.display = "block"; // 退回結算畫面
-                return;
+    // 大廳初始化時檢查身分
+    document.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const userParam = urlParams.get('user');
+        if (userParam) {
+            const userSelect = document.getElementById('currentUser');
+            if (userSelect) {
+                userSelect.value = userParam;
             }
-            
-            isPracticeMode = true; 
-            cardsData = data.cards; 
-            currentCardIndex = 0;
-            sessionHistory = []; 
-            
-            // 🛑 修復 3：安全地更新數字
-            document.getElementById("due-count").innerText = cardsData.length;
-            document.getElementById("new-count").innerText = "全";
-            document.getElementById("review-count").innerText = "域";
-            
-            document.getElementById("loading").style.display = "none";
-            
-            let startBtn = document.getElementById("start-btn");
-            startBtn.innerText = "開始全域練習 🚀";
-            startBtn.style.background = "#4CAF50";
-            startBtn.onclick = startReview; 
-            startBtn.style.display = "block";
-            
-            document.getElementById("home-screen").style.display = "block";
-            renderXPDashboard("home-xp-panel", cardsData);
-            
-        } catch (error) {
-            alert("讀取失敗，請確認網路與權限。");
-            document.getElementById("loading").style.display = "none";
-            document.getElementById("completion-screen").style.display = "block";
         }
-    }
-
-    // 🌟 升級防禦版：計算當前題庫並渲染 XP 經驗值成就條
-    function renderXPDashboard(targetPanelId, cardsArray) {
-        if (!cardsArray || cardsArray.length === 0) return;
-        
-        let seed = 0;   // Interval = 0
-        let iron = 0;   // Interval 1~3
-        let bronze = 0; // Interval 4~14
-        let gold = 0;   // Interval > 14
-        
-        cardsArray.forEach(c => {
-            let iv = parseFloat(c.interval) || 0;
-            if (iv === 0) seed++;
-            else if (iv >= 1 && iv <= 3) iron++;
-            else if (iv >= 4 && iv <= 14) bronze++;
-            else if (iv > 14) gold++;
-        });
-        
-        let total = cardsArray.length;
-        let pSeed = ((seed / total) * 100).toFixed(0);
-        let pIron = ((iron / total) * 100).toFixed(0);
-        let pBronze = ((bronze / total) * 100).toFixed(0);
-        let pGold = ((gold / total) * 100).toFixed(0);
-        
-        let html = `
-            <div class="xp-dashboard">
-                <h3>📊 記憶成就階級 (總計 ${total} 句)</h3>
-                <div class="xp-row">
-                    <div class="xp-label"><span>🌱 生疏種子 (待灌溉)</span> <span>${seed} 句 (${pSeed}%)</span></div>
-                    <div class="xp-bar-bg"><div class="xp-bar-fill" style="background: #e67e22; width: ${pSeed}%"></div></div>
-                </div>
-                <div class="xp-row">
-                    <div class="xp-label"><span>🔥 加強磨練 (大腦拉扯中)</span> <span>${iron} 句 (${pIron}%)</span></div>
-                    <div class="xp-bar-bg"><div class="xp-bar-fill" style="background: #f1c40f; width: ${pIron}%"></div></div>
-                </div>
-                <div class="xp-row">
-                    <div class="xp-label"><span>🛡️ 精熟穩固 (長期迴路)</span> <span>${bronze} 句 (${pBronze}%)</span></div>
-                    <div class="xp-bar-bg"><div class="xp-bar-fill" style="background: #2ecc71; width: ${pBronze}%"></div></div>
-                </div>
-                <div class="xp-row">
-                    <div class="xp-label"><span>👑 永恆難忘 (化為直覺)</span> <span>${gold} 句 (${pGold}%)</span></div>
-                    <div class="xp-bar-bg"><div class="xp-bar-fill" style="background: #9b59b6; width: ${pGold}%"></div></div>
-                </div>
-            </div>
-        `;
-        
-        // 💡 防呆安全檢查：如果找不到對應的 HTML 容器，就安靜退出，絕不讓網頁卡死報錯
-        let targetPanel = document.getElementById(targetPanelId);
-        if (targetPanel) {
-            targetPanel.innerHTML = html;
-        }
-    }
-
+    });
 </script>
-
 </body>
 </html>
