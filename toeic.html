@@ -269,6 +269,11 @@
                 allDueCards.forEach(c => { c.interval = 0; c.easeFactor = 2.5; });
             }
 
+            // 🌟 核心修正：將每日待複習的題庫徹底洗牌 (交錯練習)
+            if (allDueCards.length > 0) {
+                shuffleArray(allDueCards); // 加入這行！
+            }
+
             if (allDueCards.length > 0) {
                 document.getElementById('loading-screen').style.display = 'none';
                 document.getElementById('quiz-screen').style.display = 'block';

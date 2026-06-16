@@ -276,6 +276,11 @@
                 return !card.nextReviewDate || card.nextReviewDate === "" || card.nextReviewDate <= todayStr;
             });
             
+            // 🌟 核心升級 1：將每日待複習的題庫徹底洗牌，強迫大腦切換情境
+            if (allDueCards.length > 0) {
+                shuffleArray(allDueCards);
+            }
+            
             renderXPDashboard("home-xp-panel", globalAllCards);
             
             if(allDueCards && allDueCards.length > 0) {
@@ -651,9 +656,13 @@
             }
             
             isPracticeMode = true; 
+            
+            // 🌟 核心升級 2：全域練習也加入洗牌，確保每次進來挑戰順序都不同
+            shuffleArray(data.cards);
+            
             cardsData = data.cards; 
             currentCardIndex = 0;
-            sessionHistory = []; 
+            sessionHistory = [];
             
             // 🛑 修復 3：安全地更新數字
             document.getElementById("due-count").innerText = cardsData.length;
@@ -735,6 +744,14 @@
         // 直接讀取您程式裡原本就有的全域變數 currentUser，絕對不會抓錯人！
         let userToPass = currentUser || 'Derek';
         window.location.href = `index.html?user=${encodeURIComponent(userToPass)}`;
+    }
+
+    // 🌟 新增：陣列隨機洗牌工具 (Fisher-Yates)
+    function shuffleArray(arr) {
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
     }
 
 </script>
