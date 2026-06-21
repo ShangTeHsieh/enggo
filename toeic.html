@@ -355,18 +355,13 @@
         if (currentQuestion.Option_C) rawOptions.push({ text: currentQuestion.Option_C, isCorrect: correctChar === 'C' });
         if (currentQuestion.Option_D) rawOptions.push({ text: currentQuestion.Option_D, isCorrect: correctChar === 'D' });
 
-        // 2. 進行洗牌 (Fisher-Yates Shuffle)
-        // 🌟 修正：如果是 Part1 或 Part2 (聽力會唸出選項)，則「不洗牌」以保持語音同步
-        if (currentQuestion.Part === 'Part1' || currentQuestion.Part === 'Part2') {
-            currentShuffledOptions = rawOptions;
-        } else {
-            // 其他閱讀題型，進行洗牌 (Fisher-Yates Shuffle)
-            for (let i = rawOptions.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [rawOptions[i], rawOptions[j]] = [rawOptions[j], rawOptions[i]];
-            }
-            currentShuffledOptions = rawOptions;
+        // 2. 進行洗牌 (Fisher-Yates Shuffle) - 🌟 全題型無差別洗牌！
+        for (let i = rawOptions.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [rawOptions[i], rawOptions[j]] = [rawOptions[j], rawOptions[i]];
         }
+        currentShuffledOptions = rawOptions;
+
 
         // 3. 映射到畫面的 A, B, C, D 按鈕上
         const labels = ['A', 'B', 'C', 'D'];
@@ -398,13 +393,38 @@
         document.getElementById('btn-show-options').style.display = 'none';
     }
 
-    // TTS 語音發音
+    // TTS 語音發音 (🌟 動態語音組裝升級版)
     function playTTS() {
         if (!currentQuestion) return;
         window.speechSynthesis.cancel();
-        let utterance = new SpeechSynthesisUtterance(currentQuestion.Question_Audio);
+
+        let audioText = currentQuestion.Question_Audio;
+
+        // 若是聽力題，攔截原本的台詞進行「動態重組」
+        if (currentQuestion.Part === 'Part1' || currentQuestion.Part === 'Part2') {
+            // 1. 神奇刀法：利用正規表達式，把原本句子裡從 "(A)" 開始到結尾的文字砍掉，只保留「純題目」
+            let baseQuestion = currentQuestion.Question_Audio.replace(/\(A\)[\s\S]*/i, '').trim();
+            audioText = baseQuestion; 
+
+            // 2. 依序將「洗牌後」的選項唸出來
+            const labels = ['A', 'B', 'C', 'D'];
+            currentShuffledOptions.forEach((opt, index) => {
+                // 拔掉原本資料自帶的 (A)(B)(C)(D) 文字，避免重複唸出
+                let cleanOptText = opt.text.replace(/^\([A-D]\)\s*/i, '');
+                // 🌟 核心修正：加入逗號強迫引擎換氣，徹底斷開英文字母間的連音
+                audioText += ` . , ${labels[index]} , . ${cleanOptText}`;
+            });
+        }
+
+        let utterance = new SpeechSynthesisUtterance(audioText);
+        
+        // 強制鎖定系統的英文發音引擎，防範變成奇怪的中文口音
+        let voices = window.speechSynthesis.getVoices();
+        let englishVoice = voices.find(v => v.lang.includes('en-US') || v.lang.includes('en-GB') || v.lang === 'en');
+        if (englishVoice) utterance.voice = englishVoice;
+        
         utterance.lang = 'en-US';
-        utterance.rate = 0.9; 
+        utterance.rate = 0.85; // 稍微調慢一點點，符合真實考試的聽感
         window.speechSynthesis.speak(utterance);
     }
 
@@ -446,6 +466,15 @@
         document.getElementById('trans-text').innerText = currentQuestion.Translation;
         document.getElementById('analysis-text').innerText = currentQuestion.Analysis;
         document.getElementById('feedback-container').style.display = 'block';
+
+        // 🌟 核心修正：如果是聽力題，答題後強制顯示原文 (Transcript)
+        const isListening = ['Part1', 'Part2', 'Part3', 'Part4'].includes(currentQuestion.Part);
+        if (isListening) {
+            document.getElementById('question-text').style.display = 'block';
+            document.getElementById('question-text').style.fontSize = "0.95rem";
+            document.getElementById('question-text').style.color = "#555";
+            document.getElementById('question-text').innerHTML = "📜 <strong>原文 (Transcript):</strong><br>" + currentQuestion.Question_Audio;
+        }
         
         // 5. 執行 SRS 演算法
         calculateSRS(isCorrect);
