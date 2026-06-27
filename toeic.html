@@ -149,6 +149,33 @@
 
         #progress-indicator { text-align: right; font-size: 0.85rem; color: #95a5a6; margin-bottom: 10px; font-weight: bold; }
 
+        /* 🌟 大廳與儀表板樣式 */
+        #home-screen { width: 100%; max-width: 500px; text-align: center; display: none; }
+        
+        .dashboard-card {
+            background: #fff; border-radius: 15px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 20px; border-top: 5px solid var(--accent-blue);
+        }
+        
+        .exam-countdown {
+            background: #eafaf1; border: 2px dashed #2ecc71; border-radius: 12px; padding: 15px; margin-bottom: 20px;
+        }
+        .exam-countdown h3 { margin: 0 0 5px 0; color: #27ae60; font-size: 1.1rem;}
+        .exam-countdown .days { font-size: 1.8rem; font-weight: bold; color: #e74c3c; }
+
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        .stat-box { background: #f8f9fa; padding: 15px; border-radius: 10px; text-align: center; }
+        .stat-box .title { font-size: 0.85rem; color: #7f8c8d; margin-bottom: 5px; font-weight: bold;}
+        .stat-box .number { font-size: 1.5rem; color: var(--text-main); font-weight: bold;}
+        .stat-box.highlight .number { color: #e74c3c; }
+        
+        .btn-start-daily {
+            width: 100%; background: #2ecc71; color: white; border: none; padding: 15px;
+            border-radius: 12px; font-size: 1.2rem; font-weight: bold; cursor: pointer;
+            box-shadow: 0 4px 10px rgba(46, 204, 113, 0.3); transition: 0.2s;
+        }
+        .btn-start-daily:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(46, 204, 113, 0.4); }
+
     </style>
 </head>
 <body>
@@ -160,6 +187,37 @@
 
 <div id="loading-screen">
     🔄 正在從雲端載入題庫，請稍候...
+</div>
+
+<div id="home-screen">
+    <div class="exam-countdown">
+        <h3>🎯 距離多益測驗 (9/20)</h3>
+        <div>還有 <span class="days" id="countdown-days">--</span> 天</div>
+        <a href="https://www.toeic.com.tw/" target="_blank" style="font-size: 0.85rem; color: #7f8c8d; margin-top: 5px; display: inline-block;">[前往報名/查詢]</a>
+    </div>
+
+    <div class="dashboard-card">
+        <h2 style="margin: 0 0 15px 0; color: var(--text-main);"><span id="dash-part-name">Part</span> 任務</h2>
+        
+        <div class="stat-grid">
+            <div class="stat-box highlight">
+                <div class="title">今日待刷題數</div>
+                <div class="number" id="dash-due-count">0</div>
+            </div>
+            <div class="stat-box">
+                <div class="title">題庫總量</div>
+                <div class="number" id="dash-total-count">0</div>
+            </div>
+        </div>
+        
+        <p style="font-size: 0.9rem; color: #7f8c8d; margin-bottom: 20px;">
+            (包含 <span id="dash-new-count">0</span> 題新題與 <span id="dash-review-count">0</span> 題複習)
+        </p>
+
+        <button class="btn-start-daily" id="btn-start-daily" onclick="startDailyChallenge()">
+            🚀 啟動今日挑戰
+        </button>
+    </div>
 </div>
 
 <div id="completion-screen" class="card">
@@ -229,6 +287,18 @@
     let allCardsInThisPart = []; // 存放該單元的「所有」完整題庫
     let isEndlessMode = false;   // 標記當前是否處於無盡特訓模式
 
+    // 🌟 每日配額與啟動機制 (新增這三行)
+    const DAILY_TOEIC_CAP = 30; // 多益每日最多做幾題
+    let todayBatchCards = [];   
+    function startDailyChallenge() {
+        allDueCards = todayBatchCards;
+        currentCardIndex = 0;
+        document.getElementById('home-screen').style.display = 'none';
+        document.getElementById('quiz-screen').style.display = 'block';
+        loadQuestion();
+    }
+
+
     // 日期工具
     function getLocalDateString(dateObj = new Date()) {
         let year = dateObj.getFullYear();
@@ -274,13 +344,40 @@
                 shuffleArray(allDueCards); // 加入這行！
             }
 
-            if (allDueCards.length > 0) {
-                document.getElementById('loading-screen').style.display = 'none';
-                document.getElementById('quiz-screen').style.display = 'block';
-                loadQuestion();
-            } else {
-                showCompletionScreen();
+            // ==========================================
+            // 🌟 核心升級：結算儀表板數據與每日配額裁切
+            // ==========================================
+            document.getElementById('dash-part-name').innerText = targetPart;
+            document.getElementById('dash-total-count').innerText = allCardsInThisPart.length;
+            
+            // 裁切出今天的配額 (最多 30 題)
+            todayBatchCards = allDueCards.slice(0, DAILY_TOEIC_CAP);
+            
+            document.getElementById('dash-due-count').innerText = todayBatchCards.length;
+            
+            // 計算新題/複習比例
+            let batchNewCount = todayBatchCards.filter(c => !c.interval || c.interval == 0).length;
+            document.getElementById('dash-new-count').innerText = batchNewCount;
+            document.getElementById('dash-review-count').innerText = todayBatchCards.length - batchNewCount;
+
+            // 計算 9/20 多益考試倒數
+            let todayDateObj = new Date();
+            let examDateObj = new Date("2026-09-20T00:00:00");
+            let daysDiff = Math.ceil((examDateObj.getTime() - todayDateObj.getTime()) / (1000 * 3600 * 24));
+            document.getElementById('countdown-days').innerText = (daysDiff > 0) ? daysDiff : 0;
+
+            // 切換畫面到大廳
+            document.getElementById('loading-screen').style.display = 'none';
+            document.getElementById('home-screen').style.display = 'block';
+
+            // 若今日任務已空，動態切換按鈕為無盡模式
+            if (todayBatchCards.length === 0) {
+                let btn = document.getElementById('btn-start-daily');
+                btn.innerText = "今日無待辦，進入無盡模式 🌍";
+                btn.style.background = "#e67e22";
+                btn.onclick = startEndlessMode;
             }
+
         } catch (error) {
             document.getElementById('loading-screen').innerText = "❌ 讀取失敗，請確認 API 網址是否正確。";
         }
