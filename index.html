@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -28,7 +29,8 @@
 
         .dashboard-container {
             width: 100%;
-            max-width: 480px; /* 手機與平板適用的舒適寬度 */
+            max-width: 480px;
+            /* 手機與平板適用的舒適寬度 */
         }
 
         .header-section {
@@ -48,7 +50,7 @@
             background: var(--card-bg);
             padding: 15px;
             border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
             margin-bottom: 25px;
             display: flex;
             align-items: center;
@@ -93,25 +95,33 @@
             border-radius: 16px;
             text-decoration: none;
             background: var(--card-bg);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
             border: 2px solid transparent;
             transition: all 0.2s ease;
             position: relative;
             overflow: hidden;
             /* 讓手機觸控沒有藍色預設高亮 */
-            -webkit-tap-highlight-color: transparent; 
+            -webkit-tap-highlight-color: transparent;
         }
 
         /* 手機按壓時的動態回饋 */
         .btn-entry:active {
             transform: scale(0.97);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
 
         /* 各模組專屬色彩配置 */
-        .btn-speaking { border-left: 6px solid var(--accent-speaking); }
-        .btn-listen { border-left: 6px solid var(--accent-listen); }
-        .btn-read { border-left: 6px solid var(--accent-read); }
+        .btn-speaking {
+            border-left: 6px solid var(--accent-speaking);
+        }
+
+        .btn-listen {
+            border-left: 6px solid var(--accent-listen);
+        }
+
+        .btn-read {
+            border-left: 6px solid var(--accent-read);
+        }
 
         .btn-icon {
             font-size: 2rem;
@@ -146,7 +156,7 @@
             display: flex;
             align-items: center;
         }
-        
+
         .section-title::before {
             content: '';
             display: inline-block;
@@ -158,142 +168,144 @@
         }
     </style>
 </head>
+
 <body>
 
-<div class="dashboard-container">
-    
-    <div class="header-section">
-        <h1>全效英語實戰學習中心</h1>
+    <div class="dashboard-container">
+
+        <div class="header-section">
+            <h1>全效英語實戰學習中心</h1>
+        </div>
+
+        <div class="user-selector">
+            <label for="currentUser">當前使用者：</label>
+            <select id="currentUser">
+                <option value="Derek">Derek</option>
+                <option value="Joanna">Joanna</option>
+                <option value="Guest">訪客模式 (不記錄)</option>
+            </select>
+        </div>
+
+        <div class="module-grid">
+
+            <div class="section-title">實戰表達訓練</div>
+            <a href="javascript:void(0)" onclick="navigateTo('speaking.html', null)" class="btn-entry btn-speaking">
+                <div class="btn-icon">🌍</div>
+                <div class="btn-text">
+                    <span class="btn-title">情境口說實戰</span>
+                    <span class="btn-subtitle">突破語感 ‧ 打造直覺反應迴路</span>
+                </div>
+            </a>
+
+            <div class="section-title">多益聽力特訓 (Listening)</div>
+
+            <a href="javascript:void(0)" onclick="navigateTo('toeic.html', 'Part1')" class="btn-entry btn-listen">
+                <div class="btn-icon">👁️</div>
+                <div class="btn-text">
+                    <span class="btn-title">Part 1 影像辨識</span>
+                    <span class="btn-subtitle">照片描述 ‧ 敏銳捕捉畫面細節</span>
+                </div>
+            </a>
+
+            <a href="javascript:void(0)" onclick="navigateTo('toeic.html', 'Part2')" class="btn-entry btn-listen">
+                <div class="btn-icon">⚡</div>
+                <div class="btn-text">
+                    <span class="btn-title">Part 2 瞬效聽解</span>
+                    <span class="btn-subtitle">應答問題 ‧ 鍛鍊直覺秒殺能力</span>
+                </div>
+            </a>
+
+            <a href="javascript:void(0)" onclick="navigateTo('toeic.html', 'Part3')" class="btn-entry btn-listen">
+                <div class="btn-icon">🤝</div>
+                <div class="btn-text">
+                    <span class="btn-title">Part 3 商務對談</span>
+                    <span class="btn-subtitle">簡短對話 ‧ 商業邏輯與意圖拆解</span>
+                </div>
+            </a>
+
+            <a href="javascript:void(0)" onclick="navigateTo('toeic.html', 'Part4')" class="btn-entry btn-listen">
+                <div class="btn-icon">📣</div>
+                <div class="btn-text">
+                    <span class="btn-title">Part 4 獨白解析</span>
+                    <span class="btn-subtitle">廣播公告 ‧ 高效擷取核心資訊</span>
+                </div>
+            </a>
+
+            <div class="section-title">多益閱讀特訓 (Reading)</div>
+
+            <a href="javascript:void(0)" onclick="navigateTo('toeic.html', 'Part5')" class="btn-entry btn-read">
+                <div class="btn-icon">🧩</div>
+                <div class="btn-text">
+                    <span class="btn-title">Part 5 結構填空</span>
+                    <span class="btn-subtitle">單字文法 ‧ 穩健鞏固得分基礎</span>
+                </div>
+            </a>
+
+            <a href="javascript:void(0)" onclick="navigateTo('toeic.html', 'Part6')" class="btn-entry btn-read">
+                <div class="btn-icon">🔗</div>
+                <div class="btn-text">
+                    <span class="btn-title">Part 6 語意連貫</span>
+                    <span class="btn-subtitle">段落克漏 ‧ 強化上下文推論力</span>
+                </div>
+            </a>
+
+            <a href="javascript:void(0)" onclick="navigateTo('toeic.html', 'Part7')" class="btn-entry btn-read">
+                <div class="btn-icon">📖</div>
+                <div class="btn-text">
+                    <span class="btn-title">Part 7 長篇破解</span>
+                    <span class="btn-subtitle">閱讀測驗 ‧ 跨篇章資訊交叉統整</span>
+                </div>
+            </a>
+
+        </div>
     </div>
 
-    <div class="user-selector">
-        <label for="currentUser">當前使用者：</label>
-        <select id="currentUser">
-            <option value="Derek">Derek</option>
-            <option value="Joanna">Joanna</option>
-            <option value="Guest">訪客模式 (不記錄)</option>
-        </select>
-    </div>
+    <script>
+        // 🔒 安全防護：設定專屬密碼
+        const USER_PASSWORDS = {
+            "Derek": "0000",
+            "Joanna": "0000"
+        };
 
-    <div class="module-grid">
-        
-        <div class="section-title">實戰表達訓練</div>
-        <a href="javascript:void(0)" onclick="navigateTo('speaking.html', null)" class="btn-entry btn-speaking">
-            <div class="btn-icon">🌍</div>
-            <div class="btn-text">
-                <span class="btn-title">情境口說實戰</span>
-                <span class="btn-subtitle">突破語感 ‧ 打造直覺反應迴路</span>
-            </div>
-        </a>
+        // 智慧路由功能與密碼鎖
+        function navigateTo(targetPage, part) {
+            const user = document.getElementById('currentUser').value;
 
-        <div class="section-title">多益聽力特訓 (Listening)</div>
-        
-        <a href="javascript:void(0)" onclick="navigateTo('toeic.html', 'Part1')" class="btn-entry btn-listen">
-            <div class="btn-icon">👁️</div>
-            <div class="btn-text">
-                <span class="btn-title">Part 1 影像辨識</span>
-                <span class="btn-subtitle">照片描述 ‧ 敏銳捕捉畫面細節</span>
-            </div>
-        </a>
-
-        <a href="javascript:void(0)" onclick="navigateTo('toeic.html', 'Part2')" class="btn-entry btn-listen">
-            <div class="btn-icon">⚡</div>
-            <div class="btn-text">
-                <span class="btn-title">Part 2 瞬效聽解</span>
-                <span class="btn-subtitle">應答問題 ‧ 鍛鍊直覺秒殺能力</span>
-            </div>
-        </a>
-
-        <a href="javascript:void(0)" onclick="navigateTo('toeic.html', 'Part3')" class="btn-entry btn-listen">
-            <div class="btn-icon">🤝</div>
-            <div class="btn-text">
-                <span class="btn-title">Part 3 商務對談</span>
-                <span class="btn-subtitle">簡短對話 ‧ 商業邏輯與意圖拆解</span>
-            </div>
-        </a>
-
-        <a href="javascript:void(0)" onclick="navigateTo('toeic.html', 'Part4')" class="btn-entry btn-listen">
-            <div class="btn-icon">📣</div>
-            <div class="btn-text">
-                <span class="btn-title">Part 4 獨白解析</span>
-                <span class="btn-subtitle">廣播公告 ‧ 高效擷取核心資訊</span>
-            </div>
-        </a>
-
-        <div class="section-title">多益閱讀特訓 (Reading)</div>
-
-        <a href="javascript:void(0)" onclick="navigateTo('toeic.html', 'Part5')" class="btn-entry btn-read">
-            <div class="btn-icon">🧩</div>
-            <div class="btn-text">
-                <span class="btn-title">Part 5 結構填空</span>
-                <span class="btn-subtitle">單字文法 ‧ 穩健鞏固得分基礎</span>
-            </div>
-        </a>
-
-        <a href="javascript:void(0)" onclick="navigateTo('toeic.html', 'Part6')" class="btn-entry btn-read">
-            <div class="btn-icon">🔗</div>
-            <div class="btn-text">
-                <span class="btn-title">Part 6 語意連貫</span>
-                <span class="btn-subtitle">段落克漏 ‧ 強化上下文推論力</span>
-            </div>
-        </a>
-
-        <a href="javascript:void(0)" onclick="navigateTo('toeic.html', 'Part7')" class="btn-entry btn-read">
-            <div class="btn-icon">📖</div>
-            <div class="btn-text">
-                <span class="btn-title">Part 7 長篇破解</span>
-                <span class="btn-subtitle">閱讀測驗 ‧ 跨篇章資訊交叉統整</span>
-            </div>
-        </a>
-
-    </div>
-</div>
-
-<script>
-    // 🔒 安全防護：設定專屬密碼
-    const USER_PASSWORDS = {
-        "Derek": "0000",
-        "Joanna": "0000"
-    };
-
-    // 智慧路由功能與密碼鎖
-    function navigateTo(targetPage, part) {
-        const user = document.getElementById('currentUser').value;
-        
-        // 驗證密碼邏輯
-        if (user !== 'Guest') {
-            // 使用 sessionStorage，關掉瀏覽器就自動登出，確保安全
-            let isAuthed = sessionStorage.getItem(`auth_${user}`); 
-            if (!isAuthed) {
-                let pwd = prompt(`請輸入 ${user} 的專屬密碼：`);
-                if (pwd === USER_PASSWORDS[user]) {
-                    sessionStorage.setItem(`auth_${user}`, 'true');
-                } else {
-                    alert("❌ 密碼錯誤！請重新輸入。");
-                    return; // 密碼錯誤則阻擋跳轉
+            // 驗證密碼邏輯
+            if (user !== 'Guest') {
+                // 使用 sessionStorage，關掉瀏覽器就自動登出，確保安全
+                let isAuthed = sessionStorage.getItem(`auth_${user}`);
+                if (!isAuthed) {
+                    let pwd = prompt(`請輸入 ${user} 的專屬密碼：`);
+                    if (pwd === USER_PASSWORDS[user]) {
+                        sessionStorage.setItem(`auth_${user}`, 'true');
+                    } else {
+                        alert("❌ 密碼錯誤！請重新輸入。");
+                        return; // 密碼錯誤則阻擋跳轉
+                    }
                 }
             }
-        }
 
-        // 密碼正確，打包網址傳遞
-        let url = `${targetPage}?user=${encodeURIComponent(user)}`;
-        if (part) {
-            url += `&part=${part}`;
-        }
-        window.location.href = url;
-    }
-
-    // 大廳初始化時檢查身分
-    document.addEventListener('DOMContentLoaded', () => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const userParam = urlParams.get('user');
-        if (userParam) {
-            const userSelect = document.getElementById('currentUser');
-            if (userSelect) {
-                userSelect.value = userParam;
+            // 密碼正確，打包網址傳遞
+            let url = `${targetPage}?user=${encodeURIComponent(user)}`;
+            if (part) {
+                url += `&part=${part}`;
             }
+            window.location.href = url;
         }
-    });
-</script>
+
+        // 大廳初始化時檢查身分
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const userParam = urlParams.get('user');
+            if (userParam) {
+                const userSelect = document.getElementById('currentUser');
+                if (userSelect) {
+                    userSelect.value = userParam;
+                }
+            }
+        });
+    </script>
 </body>
+
 </html>

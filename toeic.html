@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -59,7 +60,7 @@
             max-width: 500px;
             background: var(--card-bg);
             border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
             padding: 20px;
             box-sizing: border-box;
             margin-bottom: 20px;
@@ -84,8 +85,19 @@
         }
 
         /* 圖片區塊 (Part 1 專用) */
-        #image-container { width: 100%; border-radius: 10px; overflow: hidden; margin-bottom: 15px; display: none; }
-        #image-container img { width: 100%; height: auto; display: block; }
+        #image-container {
+            width: 100%;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        #image-container img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
 
         /* 文章區塊 (Part 6, 7 專用) */
         #article-container {
@@ -103,610 +115,810 @@
         }
 
         /* 聽力播放區塊 */
-        #audio-container { text-align: center; margin-bottom: 20px; display: none; }
+        #audio-container {
+            text-align: center;
+            margin-bottom: 20px;
+            display: none;
+        }
+
         .btn-audio {
-            background: var(--accent-blue); color: white; border: none; padding: 12px 25px;
-            border-radius: 25px; font-size: 1.1rem; font-weight: bold; cursor: pointer;
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
             box-shadow: 0 4px 10px rgba(52, 152, 219, 0.3);
         }
 
         /* 題目區塊 */
-        #question-text { font-size: 1.15rem; font-weight: bold; margin-bottom: 20px; line-height: 1.5; }
+        #question-text {
+            font-size: 1.15rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
 
         /* 選項按鈕區塊 */
-        .options-grid { display: flex; flex-direction: column; gap: 12px; }
-        .btn-option {
-            background: #fdfdfd; border: 2px solid #ecf0f1; padding: 15px; border-radius: 12px;
-            font-size: 1rem; text-align: left; cursor: pointer; transition: all 0.2s;
-            color: var(--text-main); font-weight: 500; -webkit-tap-highlight-color: transparent;
+        .options-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
-        .btn-option:active { transform: scale(0.98); }
-        .btn-option.selected { border-color: var(--accent-blue); background: #ebf5fb; }
-        .btn-option.correct { border-color: var(--correct-green); background: #eafaf1; color: #27ae60; font-weight: bold; }
-        .btn-option.wrong { border-color: var(--wrong-red); background: #fdedec; color: #c0392b; }
+
+        .btn-option {
+            background: #fdfdfd;
+            border: 2px solid #ecf0f1;
+            padding: 15px;
+            border-radius: 12px;
+            font-size: 1rem;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-main);
+            font-weight: 500;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn-option:active {
+            transform: scale(0.98);
+        }
+
+        .btn-option.selected {
+            border-color: var(--accent-blue);
+            background: #ebf5fb;
+        }
+
+        .btn-option.correct {
+            border-color: var(--correct-green);
+            background: #eafaf1;
+            color: #27ae60;
+            font-weight: bold;
+        }
+
+        .btn-option.wrong {
+            border-color: var(--wrong-red);
+            background: #fdedec;
+            color: #c0392b;
+        }
 
         /* 詳解與回饋區塊 */
-        #feedback-container { margin-top: 25px; padding-top: 20px; border-top: 2px dashed #ecf0f1; display: none; }
-        .result-title { font-size: 1.3rem; font-weight: bold; margin-bottom: 10px; }
-        .correct-text { color: var(--correct-green); }
-        .wrong-text { color: var(--wrong-red); }
-        
-        .feedback-box {
-            background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px;
-            margin-bottom: 15px; font-size: 0.95rem; line-height: 1.5; color: #555;
+        #feedback-container {
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 2px dashed #ecf0f1;
+            display: none;
         }
-        .feedback-box h4 { margin: 0 0 5px 0; color: var(--text-main); font-size: 0.9rem;}
+
+        .result-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .correct-text {
+            color: var(--correct-green);
+        }
+
+        .wrong-text {
+            color: var(--wrong-red);
+        }
+
+        .feedback-box {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 15px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: #555;
+        }
+
+        .feedback-box h4 {
+            margin: 0 0 5px 0;
+            color: var(--text-main);
+            font-size: 0.9rem;
+        }
 
         .btn-next {
-            width: 100%; background: var(--text-main); color: white; border: none; padding: 15px;
-            border-radius: 12px; font-size: 1.1rem; font-weight: bold; cursor: pointer;
+            width: 100%;
+            background: var(--text-main);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
         }
 
         /* 讀取與完成畫面 */
-        #loading-screen { text-align: center; margin-top: 50px; font-size: 1.1rem; color: #7f8c8d; }
-        #completion-screen { text-align: center; margin-top: 30px; display: none; }
-        #completion-screen h2 { color: var(--correct-green); }
+        #loading-screen {
+            text-align: center;
+            margin-top: 50px;
+            font-size: 1.1rem;
+            color: #7f8c8d;
+        }
 
-        #progress-indicator { text-align: right; font-size: 0.85rem; color: #95a5a6; margin-bottom: 10px; font-weight: bold; }
+        #completion-screen {
+            text-align: center;
+            margin-top: 30px;
+            display: none;
+        }
+
+        #completion-screen h2 {
+            color: var(--correct-green);
+        }
+
+        #progress-indicator {
+            text-align: right;
+            font-size: 0.85rem;
+            color: #95a5a6;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
 
         /* 🌟 大廳與儀表板樣式 */
-        #home-screen { width: 100%; max-width: 500px; text-align: center; display: none; }
-        
+        #home-screen {
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+            display: none;
+        }
+
         .dashboard-card {
-            background: #fff; border-radius: 15px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            margin-bottom: 20px; border-top: 5px solid var(--accent-blue);
+            background: #fff;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+            border-top: 5px solid var(--accent-blue);
         }
-        
+
         .exam-countdown {
-            background: #eafaf1; border: 2px dashed #2ecc71; border-radius: 12px; padding: 15px; margin-bottom: 20px;
+            background: #eafaf1;
+            border: 2px dashed #2ecc71;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
         }
-        .exam-countdown h3 { margin: 0 0 5px 0; color: #27ae60; font-size: 1.1rem;}
-        .exam-countdown .days { font-size: 1.8rem; font-weight: bold; color: #e74c3c; }
 
-        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
-        .stat-box { background: #f8f9fa; padding: 15px; border-radius: 10px; text-align: center; }
-        .stat-box .title { font-size: 0.85rem; color: #7f8c8d; margin-bottom: 5px; font-weight: bold;}
-        .stat-box .number { font-size: 1.5rem; color: var(--text-main); font-weight: bold;}
-        .stat-box.highlight .number { color: #e74c3c; }
-        
+        .exam-countdown h3 {
+            margin: 0 0 5px 0;
+            color: #27ae60;
+            font-size: 1.1rem;
+        }
+
+        .exam-countdown .days {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #e74c3c;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-box .title {
+            font-size: 0.85rem;
+            color: #7f8c8d;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .stat-box .number {
+            font-size: 1.5rem;
+            color: var(--text-main);
+            font-weight: bold;
+        }
+
+        .stat-box.highlight .number {
+            color: #e74c3c;
+        }
+
         .btn-start-daily {
-            width: 100%; background: #2ecc71; color: white; border: none; padding: 15px;
-            border-radius: 12px; font-size: 1.2rem; font-weight: bold; cursor: pointer;
-            box-shadow: 0 4px 10px rgba(46, 204, 113, 0.3); transition: 0.2s;
+            width: 100%;
+            background: #2ecc71;
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 12px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(46, 204, 113, 0.3);
+            transition: 0.2s;
         }
-        .btn-start-daily:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(46, 204, 113, 0.4); }
 
+        .btn-start-daily:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(46, 204, 113, 0.4);
+        }
     </style>
 </head>
+
 <body>
 
-<div class="header">
-    <a href="javascript:void(0)" onclick="backToDashboard()" class="back-btn">⬅️ 返回大廳</a>
-    <div id="user-display" class="user-badge">載入中...</div>
-</div>
-
-<div id="loading-screen">
-    🔄 正在從雲端載入題庫，請稍候...
-</div>
-
-<div id="home-screen">
-    <div class="exam-countdown">
-        <h3>🎯 距離多益測驗 (9/20)</h3>
-        <div>還有 <span class="days" id="countdown-days">--</span> 天</div>
-        <a href="https://www.toeic.com.tw/" target="_blank" style="font-size: 0.85rem; color: #7f8c8d; margin-top: 5px; display: inline-block;">[前往報名/查詢]</a>
+    <div class="header">
+        <a href="javascript:void(0)" onclick="backToDashboard()" class="back-btn">⬅️ 返回大廳</a>
+        <div id="user-display" class="user-badge">載入中...</div>
     </div>
 
-    <div class="dashboard-card">
-        <h2 style="margin: 0 0 15px 0; color: var(--text-main);"><span id="dash-part-name">Part</span> 任務</h2>
-        
-        <div class="stat-grid">
-            <div class="stat-box highlight">
-                <div class="title">今日待刷題數</div>
-                <div class="number" id="dash-due-count">0</div>
-            </div>
-            <div class="stat-box">
-                <div class="title">題庫總量</div>
-                <div class="number" id="dash-total-count">0</div>
-            </div>
-        </div>
-        
-        <p style="font-size: 0.9rem; color: #7f8c8d; margin-bottom: 20px;">
-            (包含 <span id="dash-new-count">0</span> 題新題與 <span id="dash-review-count">0</span> 題複習)
-        </p>
+    <div id="loading-screen">
+        🔄 正在從雲端載入題庫，請稍候...
+    </div>
 
-        <button class="btn-start-daily" id="btn-start-daily" onclick="startDailyChallenge()">
-            🚀 啟動今日挑戰
+    <div id="home-screen">
+        <div class="exam-countdown">
+            <h3>🎯 距離多益測驗 (9/20)</h3>
+            <div>還有 <span class="days" id="countdown-days">--</span> 天</div>
+            <a href="https://www.toeic.com.tw/" target="_blank"
+                style="font-size: 0.85rem; color: #7f8c8d; margin-top: 5px; display: inline-block;">[前往報名/查詢]</a>
+        </div>
+
+        <div class="dashboard-card">
+            <h2 style="margin: 0 0 15px 0; color: var(--text-main);"><span id="dash-part-name">Part</span> 任務</h2>
+
+            <div class="stat-grid">
+                <div class="stat-box highlight">
+                    <div class="title">今日待刷題數</div>
+                    <div class="number" id="dash-due-count">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="title">題庫總量</div>
+                    <div class="number" id="dash-total-count">0</div>
+                </div>
+            </div>
+
+            <p style="font-size: 0.9rem; color: #7f8c8d; margin-bottom: 20px;">
+                (包含 <span id="dash-new-count">0</span> 題新題與 <span id="dash-review-count">0</span> 題複習)
+            </p>
+
+            <button class="btn-start-daily" id="btn-start-daily" onclick="startDailyChallenge()">
+                🚀 啟動今日挑戰
+            </button>
+        </div>
+    </div>
+
+    <div id="completion-screen" class="card">
+        <h2>🎉 任務完成！</h2>
+        <p id="completion-msg">您已經完成今天這個題型的所有待辦複習了！</p>
+
+        <button class="btn-next" id="btn-endless" onclick="startEndlessMode()"
+            style="margin-top: 10px; background: #e67e22; display: none;">
+            🌍 進入無盡隨機特訓 (自動存檔)
         </button>
-    </div>
-</div>
 
-<div id="completion-screen" class="card">
-    <h2>🎉 任務完成！</h2>
-    <p id="completion-msg">您已經完成今天這個題型的所有待辦複習了！</p>
-    
-    <button class="btn-next" id="btn-endless" onclick="startEndlessMode()" style="margin-top: 10px; background: #e67e22; display: none;">
-        🌍 進入無盡隨機特訓 (自動存檔)
-    </button>
-    
-    <button class="btn-next" onclick="backToDashboard()" style="margin-top: 20px; background: #3498db;">返回實戰學習中心</button>
-</div>
-
-<div class="card" id="quiz-screen" style="display: none;">
-    <div id="progress-indicator">剩餘: 0 題</div>
-    <div>
-        <span id="part-badge" class="part-badge">Part X</span>
-        <span id="test-point" class="test-point">考點</span>
+        <button class="btn-next" onclick="backToDashboard()"
+            style="margin-top: 20px; background: #3498db;">返回實戰學習中心</button>
     </div>
 
-    <div id="image-container"><img id="q-image" src="" alt="Question Image"></div>
-    <div id="article-container"></div>
-    
-    <div id="audio-container">
-        <button class="btn-audio" onclick="playTTS()">🔊 播放語音</button>
-        <p style="font-size: 0.8rem; color: #95a5a6; margin-top: 8px;">(請開啟聲音，點擊可重複聆聽)</p>
-    </div>
+    <div class="card" id="quiz-screen" style="display: none; position: relative;">
 
-    <div id="question-text">題目載入中...</div>
-    
-    <div class="options-grid" id="options-container">
-        <button class="btn-option" id="btn-A" onclick="submitAnswer('A')"><span style="font-weight:bold;">(A)</span> <span id="opt-text-A">選項</span></button>
-        <button class="btn-option" id="btn-B" onclick="submitAnswer('B')"><span style="font-weight:bold;">(B)</span> <span id="opt-text-B">選項</span></button>
-        <button class="btn-option" id="btn-C" onclick="submitAnswer('C')"><span style="font-weight:bold;">(C)</span> <span id="opt-text-C">選項</span></button>
-        <button class="btn-option" id="btn-D" onclick="submitAnswer('D')"><span style="font-weight:bold;">(D)</span> <span id="opt-text-D">選項</span></button>
-    </div>
-
-    <div id="feedback-container">
-        <div id="result-status" class="result-title"></div>
-        <div class="feedback-box">
-            <h4>🇹🇼 中文翻譯</h4>
-            <div id="trans-text"></div>
+        <div onclick="reportError(event)"
+            style="position: absolute; top: 15px; right: 15px; font-size: 1.2rem; cursor: pointer; opacity: 0.15; transition: 0.3s; z-index: 10;"
+            onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.15" title="報錯並隔離此題">⚠️</div>
+        <div id="progress-indicator">剩餘: 0 題</div>
+        <div>
+            <span id="part-badge" class="part-badge">Part X</span>
+            <span id="test-point" class="test-point">考點</span>
         </div>
-        <div class="feedback-box" style="background: #fdfefe; border-color: #d5dbdb;">
-            <h4>💡 考點解析</h4>
-            <div id="analysis-text"></div>
+
+        <div id="image-container"><img id="q-image" src="" alt="Question Image"></div>
+        <div id="article-container"></div>
+
+        <div id="audio-container">
+            <button class="btn-audio" onclick="playTTS()">🔊 播放語音</button>
+            <p style="font-size: 0.8rem; color: #95a5a6; margin-top: 8px;">(請開啟聲音，點擊可重複聆聽)</p>
         </div>
-        <button class="btn-next" onclick="nextQuestion()">儲存進度並進入下一題 ➡️</button>
+
+        <div id="question-text">題目載入中...</div>
+
+        <div class="options-grid" id="options-container">
+            <button class="btn-option" id="btn-A" onclick="submitAnswer('A')"><span style="font-weight:bold;">(A)</span>
+                <span id="opt-text-A">選項</span></button>
+            <button class="btn-option" id="btn-B" onclick="submitAnswer('B')"><span style="font-weight:bold;">(B)</span>
+                <span id="opt-text-B">選項</span></button>
+            <button class="btn-option" id="btn-C" onclick="submitAnswer('C')"><span style="font-weight:bold;">(C)</span>
+                <span id="opt-text-C">選項</span></button>
+            <button class="btn-option" id="btn-D" onclick="submitAnswer('D')"><span style="font-weight:bold;">(D)</span>
+                <span id="opt-text-D">選項</span></button>
+        </div>
+
+        <div id="feedback-container">
+            <div id="result-status" class="result-title"></div>
+            <div class="feedback-box">
+                <h4>🇹🇼 中文翻譯</h4>
+                <div id="trans-text"></div>
+            </div>
+            <div class="feedback-box" style="background: #fdfefe; border-color: #d5dbdb;">
+                <h4>💡 考點解析</h4>
+                <div id="analysis-text"></div>
+            </div>
+            <button class="btn-next" onclick="nextQuestion()">儲存進度並進入下一題 ➡️</button>
+        </div>
     </div>
-</div>
 
-<script>
+    <script>
 
-    const API_URL = "https://script.google.com/macros/s/AKfycbynSXDVVI2Y7N5CCKEOwsWiEF3PM5Ib97D4VC_71VeqSoaMrx0-TpY6gzwkBz_m8NMddA/exec"; 
-    const API_TOKEN = "derek_srs_2026";
+        const API_URL = "https://script.google.com/macros/s/AKfycbynSXDVVI2Y7N5CCKEOwsWiEF3PM5Ib97D4VC_71VeqSoaMrx0-TpY6gzwkBz_m8NMddA/exec";
+        const API_TOKEN = "derek_srs_2026";
 
-    // 系統變數
-    let currentUser = "Derek";
-    let targetPart = "Part5";
-    let allDueCards = [];
-    let currentCardIndex = 0;
-    let currentQuestion = null;
-    let isAnswered = false;
-    let currentShuffledOptions = []; // 🌟 新增：用來存放當前洗牌後的選項狀態
+        // 系統變數
+        let currentUser = "Derek";
+        let targetPart = "Part5";
+        let allDueCards = [];
+        let currentCardIndex = 0;
+        let currentQuestion = null;
+        let isAnswered = false;
+        let currentShuffledOptions = []; // 🌟 新增：用來存放當前洗牌後的選項狀態
 
-    // 🌟 新增控制變數
-    let allCardsInThisPart = []; // 存放該單元的「所有」完整題庫
-    let isEndlessMode = false;   // 標記當前是否處於無盡特訓模式
+        // 🌟 新增控制變數
+        let allCardsInThisPart = []; // 存放該單元的「所有」完整題庫
+        let isEndlessMode = false;   // 標記當前是否處於無盡特訓模式
 
-    // 🌟 每日配額與啟動機制 (新增這三行)
-    const DAILY_TOEIC_CAP = 30; // 多益每日最多做幾題
-    let todayBatchCards = [];   
-    function startDailyChallenge() {
-        allDueCards = todayBatchCards;
-        currentCardIndex = 0;
-        document.getElementById('home-screen').style.display = 'none';
-        document.getElementById('quiz-screen').style.display = 'block';
-        loadQuestion();
-    }
-
-
-    // 日期工具
-    function getLocalDateString(dateObj = new Date()) {
-        let year = dateObj.getFullYear();
-        let month = String(dateObj.getMonth() + 1).padStart(2, '0');
-        let day = String(dateObj.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    }
-
-    // 網頁初始化
-    window.onload = async function() {
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('user')) currentUser = urlParams.get('user');
-        if (urlParams.get('part')) targetPart = urlParams.get('part');
-        
-        document.getElementById('user-display').innerText = `👤 ${currentUser}`;
-        await fetchDatabase();
-    };
-
-    // 1. 升級版：讀取遠端題庫 (先快取完整題庫，再過濾出每日進度)
-    async function fetchDatabase() {
-        let fetchUser = (currentUser === 'Guest') ? 'Derek' : currentUser;
-        
-        try {
-            let response = await fetch(`${API_URL}?action=getData&app=toeic&user=${fetchUser}&token=${API_TOKEN}`);
-            let data = await response.json();
-            
-            let todayStr = getLocalDateString();
-
-            // 🌟 核心修改：先將這個題型的「所有」題目留下來作為無盡模式池子
-            allCardsInThisPart = data.cards.filter(card => card.Part === targetPart);
-
-            // 接著過濾出「今天需要複習 (或全新)」的題目作為今日任務
-            allDueCards = allCardsInThisPart.filter(card => {
-                return (!card.nextReviewDate || card.nextReviewDate === "" || card.nextReviewDate <= todayStr);
-            });
-
-            if (currentUser === 'Guest') {
-                allDueCards.forEach(c => { c.interval = 0; c.easeFactor = 2.5; });
-            }
-
-            // 🌟 核心修正：將每日待複習的題庫徹底洗牌 (交錯練習)
-            if (allDueCards.length > 0) {
-                shuffleArray(allDueCards); // 加入這行！
-            }
-
-            // ==========================================
-            // 🌟 核心升級：結算儀表板數據與每日配額裁切
-            // ==========================================
-            document.getElementById('dash-part-name').innerText = targetPart;
-            document.getElementById('dash-total-count').innerText = allCardsInThisPart.length;
-            
-            // 裁切出今天的配額 (最多 30 題)
-            todayBatchCards = allDueCards.slice(0, DAILY_TOEIC_CAP);
-            
-            document.getElementById('dash-due-count').innerText = todayBatchCards.length;
-            
-            // 計算新題/複習比例
-            let batchNewCount = todayBatchCards.filter(c => !c.interval || c.interval == 0).length;
-            document.getElementById('dash-new-count').innerText = batchNewCount;
-            document.getElementById('dash-review-count').innerText = todayBatchCards.length - batchNewCount;
-
-            // 計算 9/20 多益考試倒數
-            let todayDateObj = new Date();
-            let examDateObj = new Date("2026-09-20T00:00:00");
-            let daysDiff = Math.ceil((examDateObj.getTime() - todayDateObj.getTime()) / (1000 * 3600 * 24));
-            document.getElementById('countdown-days').innerText = (daysDiff > 0) ? daysDiff : 0;
-
-            // 切換畫面到大廳
-            document.getElementById('loading-screen').style.display = 'none';
-            document.getElementById('home-screen').style.display = 'block';
-
-            // 若今日任務已空，動態切換按鈕為無盡模式
-            if (todayBatchCards.length === 0) {
-                let btn = document.getElementById('btn-start-daily');
-                btn.innerText = "今日無待辦，進入無盡模式 🌍";
-                btn.style.background = "#e67e22";
-                btn.onclick = startEndlessMode;
-            }
-
-        } catch (error) {
-            document.getElementById('loading-screen').innerText = "❌ 讀取失敗，請確認 API 網址是否正確。";
-        }
-    }
-
-    // 渲染單一題目
-    function loadQuestion() {
-        if (currentCardIndex >= allDueCards.length) {
-            showCompletionScreen();
-            return;
+        // 🌟 每日配額與啟動機制 (新增這三行)
+        const DAILY_TOEIC_CAP = 30; // 多益每日最多做幾題
+        let todayBatchCards = [];
+        function startDailyChallenge() {
+            allDueCards = todayBatchCards;
+            currentCardIndex = 0;
+            document.getElementById('home-screen').style.display = 'none';
+            document.getElementById('quiz-screen').style.display = 'block';
+            loadQuestion();
         }
 
-        currentQuestion = allDueCards[currentCardIndex];
-        isAnswered = false;
-        
-        let remaining = allDueCards.length - currentCardIndex;
-        document.getElementById("progress-indicator").innerText = `剩餘: ${remaining} 題`;
 
-        document.getElementById('feedback-container').style.display = 'none';
-        
-        // 清除選項狀態
-        ['A', 'B', 'C', 'D'].forEach(opt => {
-            let btn = document.getElementById(`btn-${opt}`);
-            btn.className = "btn-option";
-            btn.disabled = false;
-        });
-
-        // 填入標籤
-        let isNew = (!currentQuestion.interval || currentQuestion.interval == 0);
-        document.getElementById('part-badge').innerText = (isNew ? "🆕 " : "🔄 ") + currentQuestion.Part;
-        document.getElementById('test-point').innerText = currentQuestion.TestPoint;
-
-        // 判斷題型
-        const isListening = ['Part1', 'Part2', 'Part3', 'Part4'].includes(currentQuestion.Part);
-
-        // 渲染圖片
-        if (currentQuestion.Image_URL && currentQuestion.Image_URL.trim() !== "") {
-            document.getElementById('q-image').src = currentQuestion.Image_URL;
-            document.getElementById('image-container').style.display = 'block';
-        } else {
-            document.getElementById('image-container').style.display = 'none';
+        // 日期工具
+        function getLocalDateString(dateObj = new Date()) {
+            let year = dateObj.getFullYear();
+            let month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            let day = String(dateObj.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
         }
 
-        // 渲染長文
-        if (currentQuestion.Context_Article && currentQuestion.Context_Article.trim() !== "") {
-            document.getElementById('article-container').innerHTML = currentQuestion.Context_Article;
-            document.getElementById('article-container').style.display = 'block';
-        } else {
-            document.getElementById('article-container').style.display = 'none';
-        }
+        // 網頁初始化
+        window.onload = async function () {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('user')) currentUser = urlParams.get('user');
+            if (urlParams.get('part')) targetPart = urlParams.get('part');
 
-        // 渲染題目文字或語音按鈕
-        if (isListening) {
-            document.getElementById('question-text').style.display = 'none';
-            document.getElementById('audio-container').style.display = 'block';
-        } else {
-            document.getElementById('question-text').innerText = currentQuestion.Question_Audio;
-            document.getElementById('question-text').style.display = 'block';
-            document.getElementById('audio-container').style.display = 'none';
-        }
+            document.getElementById('user-display').innerText = `👤 ${currentUser}`;
+            await fetchDatabase();
+        };
 
-       
-        // ==========================================
-        // 🌟 核心升級：選項動態洗牌 (Option Shuffling)
-        // ==========================================
-        let rawOptions = [];
-        const correctChar = currentQuestion.Correct_Answer.toUpperCase().trim(); 
+        // 1. 升級版：讀取遠端題庫 (先快取完整題庫，再過濾出每日進度)
+        async function fetchDatabase() {
+            let fetchUser = (currentUser === 'Guest') ? 'Derek' : currentUser;
 
-        // 1. 將有內容的選項封裝成物件，並綁定它是否為正確答案
-        if (currentQuestion.Option_A) rawOptions.push({ text: currentQuestion.Option_A, isCorrect: correctChar === 'A' });
-        if (currentQuestion.Option_B) rawOptions.push({ text: currentQuestion.Option_B, isCorrect: correctChar === 'B' });
-        if (currentQuestion.Option_C) rawOptions.push({ text: currentQuestion.Option_C, isCorrect: correctChar === 'C' });
-        if (currentQuestion.Option_D) rawOptions.push({ text: currentQuestion.Option_D, isCorrect: correctChar === 'D' });
+            try {
+                let response = await fetch(`${API_URL}?action=getData&app=toeic&user=${fetchUser}&token=${API_TOKEN}`);
+                let data = await response.json();
 
-        // 2. 進行洗牌 (Fisher-Yates Shuffle) - 🌟 全題型無差別洗牌！
-        for (let i = rawOptions.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [rawOptions[i], rawOptions[j]] = [rawOptions[j], rawOptions[i]];
-        }
-        currentShuffledOptions = rawOptions;
+                let todayStr = getLocalDateString();
 
+                // 🌟 核心修改：先將這個題型的「所有」題目留下來作為無盡模式池子
+                allCardsInThisPart = data.cards.filter(card => card.Part === targetPart);
 
-        // 3. 映射到畫面的 A, B, C, D 按鈕上
-        const labels = ['A', 'B', 'C', 'D'];
-        labels.forEach((label, index) => {
-            let btn = document.getElementById(`btn-${label}`);
-            let textSpan = document.getElementById(`opt-text-${label}`); // 抓取文字區塊
-            
-            if (index < rawOptions.length) {
-                let cleanText = rawOptions[index].text.replace(/^\([A-D]\)\s*/i, '');
-                textSpan.innerText = cleanText; // 將文字填入
-                
-                // 🌟 核心升級：若是聽力題，初始隱藏選項文字，只保留 (A)(B)(C)(D)
-                if (currentQuestion.Part === 'Part1' || currentQuestion.Part === 'Part2') {
-                    textSpan.style.display = 'none'; 
-                } else {
-                    textSpan.style.display = 'inline';
+                // 接著過濾出「今天需要複習 (或全新)」的題目作為今日任務
+                allDueCards = allCardsInThisPart.filter(card => {
+                    return (!card.nextReviewDate || card.nextReviewDate === "" || card.nextReviewDate <= todayStr);
+                });
+
+                if (currentUser === 'Guest') {
+                    allDueCards.forEach(c => { c.interval = 0; c.easeFactor = 2.5; });
                 }
-                
-                btn.style.display = 'block';
-            } else {
-                btn.style.display = 'none'; 
+
+                // 🌟 核心修正：將每日待複習的題庫徹底洗牌 (交錯練習)
+                if (allDueCards.length > 0) {
+                    shuffleArray(allDueCards); // 加入這行！
+                }
+
+                // ==========================================
+                // 🌟 核心升級：結算儀表板數據與每日配額裁切
+                // ==========================================
+                document.getElementById('dash-part-name').innerText = targetPart;
+                document.getElementById('dash-total-count').innerText = allCardsInThisPart.length;
+
+                // 裁切出今天的配額 (最多 30 題)
+                todayBatchCards = allDueCards.slice(0, DAILY_TOEIC_CAP);
+
+                document.getElementById('dash-due-count').innerText = todayBatchCards.length;
+
+                // 計算新題/複習比例
+                let batchNewCount = todayBatchCards.filter(c => !c.interval || c.interval == 0).length;
+                document.getElementById('dash-new-count').innerText = batchNewCount;
+                document.getElementById('dash-review-count').innerText = todayBatchCards.length - batchNewCount;
+
+                // 計算 9/20 多益考試倒數
+                let todayDateObj = new Date();
+                let examDateObj = new Date("2026-09-20T00:00:00");
+                let daysDiff = Math.ceil((examDateObj.getTime() - todayDateObj.getTime()) / (1000 * 3600 * 24));
+                document.getElementById('countdown-days').innerText = (daysDiff > 0) ? daysDiff : 0;
+
+                // 切換畫面到大廳
+                document.getElementById('loading-screen').style.display = 'none';
+                document.getElementById('home-screen').style.display = 'block';
+
+                // 若今日任務已空，動態切換按鈕為無盡模式
+                if (todayBatchCards.length === 0) {
+                    let btn = document.getElementById('btn-start-daily');
+                    btn.innerText = "今日無待辦，進入無盡模式 🌍";
+                    btn.style.background = "#e67e22";
+                    btn.onclick = startEndlessMode;
+                }
+
+            } catch (error) {
+                document.getElementById('loading-screen').innerText = "❌ 讀取失敗，請確認 API 網址是否正確。";
             }
-        });
-    }
+        }
 
-    // 🌟 新增：聽力題聽完後，展開選項的按鈕功能
-    function revealOptions() {
-        document.getElementById('options-container').style.display = 'flex';
-        document.getElementById('btn-show-options').style.display = 'none';
-    }
+        // 渲染單一題目
+        function loadQuestion() {
+            if (currentCardIndex >= allDueCards.length) {
+                showCompletionScreen();
+                return;
+            }
 
-    // TTS 語音發音 (🌟 動態語音組裝升級版)
-    function playTTS() {
-        if (!currentQuestion) return;
-        window.speechSynthesis.cancel();
+            currentQuestion = allDueCards[currentCardIndex];
+            isAnswered = false;
 
-        let audioText = currentQuestion.Question_Audio;
+            let remaining = allDueCards.length - currentCardIndex;
+            document.getElementById("progress-indicator").innerText = `剩餘: ${remaining} 題`;
 
-        // 若是聽力題，攔截原本的台詞進行「動態重組」
-        if (currentQuestion.Part === 'Part1' || currentQuestion.Part === 'Part2') {
-            // 1. 神奇刀法：利用正規表達式，把原本句子裡從 "(A)" 開始到結尾的文字砍掉，只保留「純題目」
-            let baseQuestion = currentQuestion.Question_Audio.replace(/\(A\)[\s\S]*/i, '').trim();
-            audioText = baseQuestion; 
+            document.getElementById('feedback-container').style.display = 'none';
 
-            // 2. 依序將「洗牌後」的選項唸出來
+            // 清除選項狀態
+            ['A', 'B', 'C', 'D'].forEach(opt => {
+                let btn = document.getElementById(`btn-${opt}`);
+                btn.className = "btn-option";
+                btn.disabled = false;
+            });
+
+            // 填入標籤
+            let isNew = (!currentQuestion.interval || currentQuestion.interval == 0);
+            document.getElementById('part-badge').innerText = (isNew ? "🆕 " : "🔄 ") + currentQuestion.Part;
+            document.getElementById('test-point').innerText = currentQuestion.TestPoint;
+
+            // 判斷題型
+            const isListening = ['Part1', 'Part2', 'Part3', 'Part4'].includes(currentQuestion.Part);
+
+            // 渲染圖片
+            if (currentQuestion.Image_URL && currentQuestion.Image_URL.trim() !== "") {
+                document.getElementById('q-image').src = currentQuestion.Image_URL;
+                document.getElementById('image-container').style.display = 'block';
+            } else {
+                document.getElementById('image-container').style.display = 'none';
+            }
+
+            // 渲染長文
+            if (currentQuestion.Context_Article && currentQuestion.Context_Article.trim() !== "") {
+                document.getElementById('article-container').innerHTML = currentQuestion.Context_Article;
+                document.getElementById('article-container').style.display = 'block';
+            } else {
+                document.getElementById('article-container').style.display = 'none';
+            }
+
+            // 渲染題目文字或語音按鈕
+            if (isListening) {
+                document.getElementById('question-text').style.display = 'none';
+                document.getElementById('audio-container').style.display = 'block';
+            } else {
+                document.getElementById('question-text').innerText = currentQuestion.Question_Audio;
+                document.getElementById('question-text').style.display = 'block';
+                document.getElementById('audio-container').style.display = 'none';
+            }
+
+
+            // ==========================================
+            // 🌟 核心升級：選項動態洗牌 (Option Shuffling)
+            // ==========================================
+            let rawOptions = [];
+            const correctChar = currentQuestion.Correct_Answer.toUpperCase().trim();
+
+            // 1. 將有內容的選項封裝成物件，並綁定它是否為正確答案
+            if (currentQuestion.Option_A) rawOptions.push({ text: currentQuestion.Option_A, isCorrect: correctChar === 'A' });
+            if (currentQuestion.Option_B) rawOptions.push({ text: currentQuestion.Option_B, isCorrect: correctChar === 'B' });
+            if (currentQuestion.Option_C) rawOptions.push({ text: currentQuestion.Option_C, isCorrect: correctChar === 'C' });
+            if (currentQuestion.Option_D) rawOptions.push({ text: currentQuestion.Option_D, isCorrect: correctChar === 'D' });
+
+            // 2. 進行洗牌 (Fisher-Yates Shuffle) - 🌟 全題型無差別洗牌！
+            for (let i = rawOptions.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [rawOptions[i], rawOptions[j]] = [rawOptions[j], rawOptions[i]];
+            }
+            currentShuffledOptions = rawOptions;
+
+
+            // 3. 映射到畫面的 A, B, C, D 按鈕上
             const labels = ['A', 'B', 'C', 'D'];
-            currentShuffledOptions.forEach((opt, index) => {
-                // 拔掉原本資料自帶的 (A)(B)(C)(D) 文字，避免重複唸出
-                let cleanOptText = opt.text.replace(/^\([A-D]\)\s*/i, '');
-                // 🌟 核心修正：加入逗號強迫引擎換氣，徹底斷開英文字母間的連音
-                audioText += ` . , ${labels[index]} , . ${cleanOptText}`;
+            labels.forEach((label, index) => {
+                let btn = document.getElementById(`btn-${label}`);
+                let textSpan = document.getElementById(`opt-text-${label}`); // 抓取文字區塊
+
+                if (index < rawOptions.length) {
+                    let cleanText = rawOptions[index].text.replace(/^\([A-D]\)\s*/i, '');
+                    textSpan.innerText = cleanText; // 將文字填入
+
+                    // 🌟 核心升級：若是聽力題，初始隱藏選項文字，只保留 (A)(B)(C)(D)
+                    if (currentQuestion.Part === 'Part1' || currentQuestion.Part === 'Part2') {
+                        textSpan.style.display = 'none';
+                    } else {
+                        textSpan.style.display = 'inline';
+                    }
+
+                    btn.style.display = 'block';
+                } else {
+                    btn.style.display = 'none';
+                }
             });
         }
 
-        let utterance = new SpeechSynthesisUtterance(audioText);
-        
-        // 強制鎖定系統的英文發音引擎，防範變成奇怪的中文口音
-        let voices = window.speechSynthesis.getVoices();
-        let englishVoice = voices.find(v => v.lang.includes('en-US') || v.lang.includes('en-GB') || v.lang === 'en');
-        if (englishVoice) utterance.voice = englishVoice;
-        
-        utterance.lang = 'en-US';
-        utterance.rate = 0.85; // 稍微調慢一點點，符合真實考試的聽感
-        window.speechSynthesis.speak(utterance);
-    }
-
-    // 🌟 升級版：支援洗牌判定的作答邏輯
-    function submitAnswer(selectedUIBtnLabel) {
-        if (isAnswered) return; 
-        isAnswered = true;
-
-        // 1. 取得使用者點擊的選項物件
-        const selectedIndex = ['A', 'B', 'C', 'D'].indexOf(selectedUIBtnLabel);
-        const selectedOptionObj = currentShuffledOptions[selectedIndex];
-        
-        // 2. 判斷是否答對
-        const isCorrect = selectedOptionObj.isCorrect;
-
-        // 3. 鎖定所有選項按鈕，並對正確答案進行標記
-        ['A', 'B', 'C', 'D'].forEach((label, index) => {
-            if (index >= currentShuffledOptions.length) return;
-            let btn = document.getElementById(`btn-${label}`);
-            let textSpan = document.getElementById(`opt-text-${label}`); // 抓取文字區塊
-            btn.disabled = true;
-            
-            // 🌟 答題解鎖：無論答對答錯，作答後一律展開完整文字以供檢討
-            textSpan.style.display = 'inline';
-            
-            // 核心邏輯：只要該選項的 isCorrect 為 true，就標記為正確綠色
-            if (currentShuffledOptions[index].isCorrect) {
-                btn.classList.add('correct');
-            } else if (label === selectedUIBtnLabel && !isCorrect) {
-                btn.classList.add('wrong'); // 點錯的標紅色
-            }
-        });
-
-        // 4. 顯示詳解 (不再提示原始編號)
-        const statusDiv = document.getElementById('result-status');
-        statusDiv.innerHTML = isCorrect ? "✅ 答對了！非常棒！" : "❌ 答錯了！";
-        statusDiv.className = isCorrect ? "result-title correct-text" : "result-title wrong-text";
-
-        document.getElementById('trans-text').innerText = currentQuestion.Translation;
-        document.getElementById('analysis-text').innerText = currentQuestion.Analysis;
-        document.getElementById('feedback-container').style.display = 'block';
-
-        // 🌟 核心修正：如果是聽力題，答題後強制顯示原文 (Transcript)
-        const isListening = ['Part1', 'Part2', 'Part3', 'Part4'].includes(currentQuestion.Part);
-        if (isListening) {
-            document.getElementById('question-text').style.display = 'block';
-            document.getElementById('question-text').style.fontSize = "0.95rem";
-            document.getElementById('question-text').style.color = "#555";
-            document.getElementById('question-text').innerHTML = "📜 <strong>原文 (Transcript):</strong><br>" + currentQuestion.Question_Audio;
+        // 🌟 新增：聽力題聽完後，展開選項的按鈕功能
+        function revealOptions() {
+            document.getElementById('options-container').style.display = 'flex';
+            document.getElementById('btn-show-options').style.display = 'none';
         }
-        
-        // 5. 執行 SRS 演算法
-        calculateSRS(isCorrect);
-    }
+
+        // TTS 語音發音 (🌟 動態語音組裝升級版)
+        function playTTS() {
+            if (!currentQuestion) return;
+            window.speechSynthesis.cancel();
+
+            let audioText = currentQuestion.Question_Audio;
+
+            // 若是聽力題，攔截原本的台詞進行「動態重組」
+            if (currentQuestion.Part === 'Part1' || currentQuestion.Part === 'Part2') {
+                // 1. 神奇刀法：利用正規表達式，把原本句子裡從 "(A)" 開始到結尾的文字砍掉，只保留「純題目」
+                let baseQuestion = currentQuestion.Question_Audio.replace(/\(A\)[\s\S]*/i, '').trim();
+                audioText = baseQuestion;
+
+                // 2. 依序將「洗牌後」的選項唸出來
+                const labels = ['A', 'B', 'C', 'D'];
+                currentShuffledOptions.forEach((opt, index) => {
+                    // 拔掉原本資料自帶的 (A)(B)(C)(D) 文字，避免重複唸出
+                    let cleanOptText = opt.text.replace(/^\([A-D]\)\s*/i, '');
+                    // 🌟 核心修正：加入逗號強迫引擎換氣，徹底斷開英文字母間的連音
+                    audioText += ` . , ${labels[index]} , . ${cleanOptText}`;
+                });
+            }
+
+            let utterance = new SpeechSynthesisUtterance(audioText);
+
+            // 強制鎖定系統的英文發音引擎，防範變成奇怪的中文口音
+            let voices = window.speechSynthesis.getVoices();
+            let englishVoice = voices.find(v => v.lang.includes('en-US') || v.lang.includes('en-GB') || v.lang === 'en');
+            if (englishVoice) utterance.voice = englishVoice;
+
+            utterance.lang = 'en-US';
+            utterance.rate = 0.85; // 稍微調慢一點點，符合真實考試的聽感
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // 🌟 升級版：支援洗牌判定的作答邏輯
+        function submitAnswer(selectedUIBtnLabel) {
+            if (isAnswered) return;
+            isAnswered = true;
+
+            // 1. 取得使用者點擊的選項物件
+            const selectedIndex = ['A', 'B', 'C', 'D'].indexOf(selectedUIBtnLabel);
+            const selectedOptionObj = currentShuffledOptions[selectedIndex];
+
+            // 2. 判斷是否答對
+            const isCorrect = selectedOptionObj.isCorrect;
+
+            // 3. 鎖定所有選項按鈕，並對正確答案進行標記
+            ['A', 'B', 'C', 'D'].forEach((label, index) => {
+                if (index >= currentShuffledOptions.length) return;
+                let btn = document.getElementById(`btn-${label}`);
+                let textSpan = document.getElementById(`opt-text-${label}`); // 抓取文字區塊
+                btn.disabled = true;
+
+                // 🌟 答題解鎖：無論答對答錯，作答後一律展開完整文字以供檢討
+                textSpan.style.display = 'inline';
+
+                // 核心邏輯：只要該選項的 isCorrect 為 true，就標記為正確綠色
+                if (currentShuffledOptions[index].isCorrect) {
+                    btn.classList.add('correct');
+                } else if (label === selectedUIBtnLabel && !isCorrect) {
+                    btn.classList.add('wrong'); // 點錯的標紅色
+                }
+            });
+
+            // 4. 顯示詳解 (不再提示原始編號)
+            const statusDiv = document.getElementById('result-status');
+            statusDiv.innerHTML = isCorrect ? "✅ 答對了！非常棒！" : "❌ 答錯了！";
+            statusDiv.className = isCorrect ? "result-title correct-text" : "result-title wrong-text";
+
+            document.getElementById('trans-text').innerText = currentQuestion.Translation;
+            document.getElementById('analysis-text').innerText = currentQuestion.Analysis;
+            document.getElementById('feedback-container').style.display = 'block';
+
+            // 🌟 核心修正：如果是聽力題，答題後強制顯示原文 (Transcript)
+            const isListening = ['Part1', 'Part2', 'Part3', 'Part4'].includes(currentQuestion.Part);
+            if (isListening) {
+                document.getElementById('question-text').style.display = 'block';
+                document.getElementById('question-text').style.fontSize = "0.95rem";
+                document.getElementById('question-text').style.color = "#555";
+                document.getElementById('question-text').innerHTML = "📜 <strong>原文 (Transcript):</strong><br>" + currentQuestion.Question_Audio;
+            }
+
+            // 5. 執行 SRS 演算法
+            calculateSRS(isCorrect);
+        }
 
 
-    function calculateSRS(isCorrect) {
-        let interval = parseFloat(currentQuestion.interval) || 0;
-        let ease = parseFloat(currentQuestion.easeFactor) || 2.5;
+        function calculateSRS(isCorrect) {
+            let interval = parseFloat(currentQuestion.interval) || 0;
+            let ease = parseFloat(currentQuestion.easeFactor) || 2.5;
 
-        if (isCorrect) {
-            // 答對：根據熟悉度向後推延
-            if (interval === 0) {
-                interval = 1; // 新題目答對，明天複習
+            if (isCorrect) {
+                // 答對：根據熟悉度向後推延
+                if (interval === 0) {
+                    interval = 1; // 新題目答對，明天複習
+                } else {
+                    interval = Math.round(interval * ease * 1.2); // 稍微給一點答對獎勵
+                    ease = Math.min(3.0, ease + 0.1);
+                }
             } else {
-                interval = Math.round(interval * ease * 1.2); // 稍微給一點答對獎勵
-                ease = Math.min(3.0, ease + 0.1); 
+                // 答錯：打回原形重新來過
+                interval = 0;
+                ease = Math.max(1.3, ease - 0.2);
             }
-        } else {
-            // 答錯：打回原形重新來過
-            interval = 0; 
-            ease = Math.max(1.3, ease - 0.2); 
+
+            interval = Math.min(180, interval); // 最長半年後一定要複習
+
+            let nextDate = new Date();
+            nextDate.setDate(nextDate.getDate() + interval);
+
+            // 暫存更新後的數據準備上傳
+            currentQuestion.newInterval = interval;
+            currentQuestion.newEase = ease;
+            currentQuestion.newNextReviewDate = getLocalDateString(nextDate);
         }
 
-        interval = Math.min(180, interval); // 最長半年後一定要複習
+        // 3. 升級版：進入下一題 (移除舊有無盡模式不存檔限制，無盡模式照樣自動上傳進度)
+        function nextQuestion() {
+            if (currentUser !== 'Guest') {
+                fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        token: API_TOKEN,
+                        user: currentUser,
+                        app: 'toeic',
+                        action: 'updateCard',
+                        rowNumber: currentQuestion.rowNumber,
+                        nextReviewDate: currentQuestion.newNextReviewDate,
+                        interval: currentQuestion.newInterval,
+                        isStuck: 0,
+                        easeFactor: currentQuestion.newEase
+                    }),
+                    headers: { 'Content-Type': 'text/plain' }
+                });
+            }
 
-        let nextDate = new Date();
-        nextDate.setDate(nextDate.getDate() + interval);
-        
-        // 暫存更新後的數據準備上傳
-        currentQuestion.newInterval = interval;
-        currentQuestion.newEase = ease;
-        currentQuestion.newNextReviewDate = getLocalDateString(nextDate);
-    }
-
-    // 3. 升級版：進入下一題 (移除舊有無盡模式不存檔限制，無盡模式照樣自動上傳進度)
-    function nextQuestion() {
-        if (currentUser !== 'Guest') {
-            fetch(API_URL, {
-                method: 'POST',
-                body: JSON.stringify({
-                    token: API_TOKEN,
-                    user: currentUser,
-                    app: 'toeic', 
-                    action: 'updateCard',
-                    rowNumber: currentQuestion.rowNumber,
-                    nextReviewDate: currentQuestion.newNextReviewDate,
-                    interval: currentQuestion.newInterval,
-                    isStuck: 0,
-                    easeFactor: currentQuestion.newEase
-                }),
-                headers: { 'Content-Type': 'text/plain' }
-            });
+            window.speechSynthesis.cancel();
+            currentCardIndex++;
+            loadQuestion();
         }
 
-        window.speechSynthesis.cancel();
-        currentCardIndex++;
-        loadQuestion();
-    }
+        // 2. 升級版：完成畫面處理 (動態顯示無盡模式按鈕)
+        function showCompletionScreen() {
+            document.getElementById('loading-screen').style.display = 'none';
+            document.getElementById('quiz-screen').style.display = 'none';
+            document.getElementById('completion-screen').style.display = 'block';
 
-    // 2. 升級版：完成畫面處理 (動態顯示無盡模式按鈕)
-    function showCompletionScreen() {
-        document.getElementById('loading-screen').style.display = 'none';
-        document.getElementById('quiz-screen').style.display = 'none';
-        document.getElementById('completion-screen').style.display = 'block';
-        
-        if (isEndlessMode) {
-            document.getElementById('completion-msg').innerText = `🔥 太強了！您已完成無盡隨機特訓的所有題目！`;
-            document.getElementById('btn-endless').style.display = 'none';
-        } else {
-            document.getElementById('completion-msg').innerText = `您已完成今天 ${targetPart} 的所有複習進度！休息一下，或是回大廳挑戰其他題型吧！`;
-            // 🌟 如果該單元總題庫內有資料，就亮出無盡隨機練習按鈕
-            if (allCardsInThisPart.length > 0) {
-                document.getElementById('btn-endless').style.display = 'block';
+            if (isEndlessMode) {
+                document.getElementById('completion-msg').innerText = `🔥 太強了！您已完成無盡隨機特訓的所有題目！`;
+                document.getElementById('btn-endless').style.display = 'none';
+            } else {
+                document.getElementById('completion-msg').innerText = `您已完成今天 ${targetPart} 的所有複習進度！休息一下，或是回大廳挑戰其他題型吧！`;
+                // 🌟 如果該單元總題庫內有資料，就亮出無盡隨機練習按鈕
+                if (allCardsInThisPart.length > 0) {
+                    document.getElementById('btn-endless').style.display = 'block';
+                }
             }
         }
-    }
 
-    function backToDashboard() {
-        window.location.href = `index.html?user=${encodeURIComponent(currentUser)}`;
-    }
+        function backToDashboard() {
+            window.location.href = `index.html?user=${encodeURIComponent(currentUser)}`;
+        }
 
-    // 🌟 新增：70/30 混合弱點的無盡特訓模式
-    function startEndlessMode() {
-        isEndlessMode = true;
-        
-        // 1. 定義強弱題庫 (複習間隔 <= 14 天或新題算弱題，> 14 天算精熟強題)
-        let weakPool = allCardsInThisPart.filter(c => (parseFloat(c.interval) || 0) <= 14);
-        let strongPool = allCardsInThisPart.filter(c => (parseFloat(c.interval) || 0) > 14);
-        
-        // 防呆：如果剛開始用題庫沒有精熟強題，就互相複製備援
-        if (weakPool.length === 0) weakPool = [...allCardsInThisPart];
-        if (strongPool.length === 0) strongPool = [...allCardsInThisPart];
-        
-        // 將各自池子內部的順序完全隨機大洗牌
-        shuffleArray(weakPool);
-        shuffleArray(strongPool);
-        
-        // 2. 依照 70% 弱題 + 30% 強題的黃金比例混合抽取
-        let mixedBatch = [];
-        let totalCount = allCardsInThisPart.length; 
-        
-        for (let i = 0; i < totalCount; i++) {
-            if (Math.random() < 0.7 && weakPool.length > 0) {
-                mixedBatch.push(weakPool.pop());
-            } else if (strongPool.length > 0) {
-                mixedBatch.push(strongPool.pop());
-            } else if (weakPool.length > 0) {
-                mixedBatch.push(weakPool.pop()); 
+        // 🌟 新增：70/30 混合弱點的無盡特訓模式
+        function startEndlessMode() {
+            isEndlessMode = true;
+
+            // 1. 定義強弱題庫 (複習間隔 <= 14 天或新題算弱題，> 14 天算精熟強題)
+            let weakPool = allCardsInThisPart.filter(c => (parseFloat(c.interval) || 0) <= 14);
+            let strongPool = allCardsInThisPart.filter(c => (parseFloat(c.interval) || 0) > 14);
+
+            // 防呆：如果剛開始用題庫沒有精熟強題，就互相複製備援
+            if (weakPool.length === 0) weakPool = [...allCardsInThisPart];
+            if (strongPool.length === 0) strongPool = [...allCardsInThisPart];
+
+            // 將各自池子內部的順序完全隨機大洗牌
+            shuffleArray(weakPool);
+            shuffleArray(strongPool);
+
+            // 2. 依照 70% 弱題 + 30% 強題的黃金比例混合抽取
+            let mixedBatch = [];
+            let totalCount = allCardsInThisPart.length;
+
+            for (let i = 0; i < totalCount; i++) {
+                if (Math.random() < 0.7 && weakPool.length > 0) {
+                    mixedBatch.push(weakPool.pop());
+                } else if (strongPool.length > 0) {
+                    mixedBatch.push(strongPool.pop());
+                } else if (weakPool.length > 0) {
+                    mixedBatch.push(weakPool.pop());
+                }
+            }
+
+            // 3. 把組裝好、有層次感的混合題庫交給作答佇列，重設索引
+            allDueCards = mixedBatch;
+            currentCardIndex = 0;
+
+            // 4. 切換 UI 狀態回到練習畫面
+            document.getElementById('completion-screen').style.display = 'none';
+            document.getElementById('quiz-screen').style.display = 'block';
+
+            // 動態更新進度條標籤，提醒您目前正在特訓中
+            let badge = document.getElementById('part-badge');
+            if (badge) badge.innerText = `🌍 隨機特訓 | ${targetPart}`;
+
+            loadQuestion();
+        }
+
+        // 🌟 新增：陣列隨機洗牌工具 (Fisher-Yates)
+        function shuffleArray(arr) {
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
             }
         }
-        
-        // 3. 把組裝好、有層次感的混合題庫交給作答佇列，重設索引
-        allDueCards = mixedBatch;
-        currentCardIndex = 0;
-        
-        // 4. 切換 UI 狀態回到練習畫面
-        document.getElementById('completion-screen').style.display = 'none';
-        document.getElementById('quiz-screen').style.display = 'block';
-        
-        // 動態更新進度條標籤，提醒您目前正在特訓中
-        let badge = document.getElementById('part-badge');
-        if (badge) badge.innerText = `🌍 隨機特訓 | ${targetPart}`;
-        
-        loadQuestion();
-    }
 
-    // 🌟 新增：陣列隨機洗牌工具 (Fisher-Yates)
-    function shuffleArray(arr) {
-        for (let i = arr.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [arr[i], arr[j]] = [arr[j], arr[i]];
+        function reportError(event) {
+            event.stopPropagation();
+            if (!confirm("發現這道題目解析或選項有誤？\n確定要回報並將此題標記為隔離嗎？")) return;
+
+            if (currentUser !== 'Guest') {
+                fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        token: API_TOKEN,
+                        user: currentUser,
+                        app: 'toeic',
+                        action: 'updateCard',
+                        rowNumber: currentQuestion.rowNumber,
+                        nextReviewDate: currentQuestion.newNextReviewDate || currentQuestion.nextReviewDate,
+                        interval: 0,
+                        isStuck: 1, // 隱藏
+                        isError: 1, // 報錯紅燈
+                        easeFactor: currentQuestion.newEase || currentQuestion.easeFactor
+                    }),
+                    headers: { 'Content-Type': 'text/plain' }
+                });
+            }
+            alert("✅ 已回報！系統將暫停顯示此題，請於週末前往試算表修正。");
+            window.speechSynthesis.cancel();
+            currentCardIndex++;
+            loadQuestion();
         }
-    }
 
-</script>
+    </script>
 </body>
+
 </html>
