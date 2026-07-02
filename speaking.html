@@ -595,6 +595,7 @@
                         token: API_TOKEN,
                         user: currentUser, // 🌟 傳遞登入者身份
                         action: 'updateCard',
+                        Card_ID: card.Card_ID, // 🌟 務必加上這行！把身分證傳給後端
                         rowNumber: card.rowNumber,
                         nextReviewDate: formattedDate,
                         interval: interval,
@@ -671,6 +672,7 @@
                         token: API_TOKEN,
                         user: currentUser, // 🌟 傳遞登入者身份
                         action: 'updateStats',
+                        Card_ID: card.Card_ID, // 🌟 務必加上這行！把身分證傳給後端
                         lastLoginDate: todayStr,
                         streak: currentStreak,
                         freezeTokens: freezeTokens
@@ -902,6 +904,7 @@
                         user: currentUser,
                         action: 'updateCard',
                         app: 'speaking',
+                        Card_ID: card.Card_ID, // 🌟 務必加上這行！把身分證傳給後端
                         rowNumber: card.rowNumber,
                         nextReviewDate: card.nextReviewDate,
                         interval: 0,
