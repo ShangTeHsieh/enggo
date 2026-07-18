@@ -5,6 +5,65 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>全效英語實戰學習中心</title>
+
+    <!-- 引入 Chart.js 圖表引擎 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- 🌟 PWA 動態注入引擎 -->
+    <script>
+        (function initPWA() {
+            // 1. 定義您的 App 資訊與高畫質 Icon (採用安全的 CDN 資源)
+            const appName = "全效英語實戰";
+            const appIconUrl = "https://cdn-icons-png.flaticon.com/512/3163/3163201.png"; // 您可以隨時換成喜歡的圖片網址
+            const themeColor = "#2c3e50";
+
+            // 2. 注入 Apple iOS 專用標籤 (確保 iPhone 全螢幕與狀態列風格)
+            const metaTags = [
+                { name: 'apple-mobile-web-app-capable', content: 'yes' },
+                { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
+                { name: 'apple-mobile-web-app-title', content: appName },
+                { name: 'theme-color', content: themeColor }
+            ];
+
+            metaTags.forEach(tag => {
+                let m = document.createElement('meta');
+                m.name = tag.name; m.content = tag.content;
+                document.head.appendChild(m);
+            });
+
+            // 注入 Apple 專屬 Icon
+            let appleIcon = document.createElement('link');
+            appleIcon.rel = 'apple-touch-icon';
+            appleIcon.href = appIconUrl;
+            document.head.appendChild(appleIcon);
+
+            // 3. 動態產生 manifest.json (Android & 現代瀏覽器專用)
+            const manifest = {
+                "name": appName,
+                "short_name": appName,
+                "start_url": window.location.href, // 綁定您當前的 GAS 網址
+                "display": "standalone",           // 強制全螢幕，隱藏瀏覽器網址列
+                "background_color": "#ecf0f1",
+                "theme_color": themeColor,
+                "icons": [{
+                    "src": appIconUrl,
+                    "sizes": "512x512",
+                    "type": "image/png",
+                    "purpose": "any maskable"
+                }]
+            };
+
+            // 利用 Blob 將 JSON 轉為瀏覽器可讀取的虛擬檔案網址
+            const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+            const manifestUrl = URL.createObjectURL(manifestBlob);
+            
+            let manifestLink = document.createElement('link');
+            manifestLink.rel = 'manifest';
+            manifestLink.href = manifestUrl;
+            document.head.appendChild(manifestLink);
+        })();
+    </script>
+
     <style>
         :root {
             --primary-bg: #f4f7f6;
@@ -209,7 +268,7 @@
             display: none;
         }
 
-        /* 🌟 直列式成就清單樣式 */
+        /* 🌟 直列式成就清單樣式 (緊湊優化版) */
         .achievement-list {
             list-style: none;
             padding: 0;
@@ -219,9 +278,9 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px 10px;
+            padding: 8px 5px; /* 🌟 縮小上下內邊距，減少高度佔用 */
             border-bottom: 1px dashed #ecf0f1;
-            font-size: 1.05rem;
+            font-size: 0.95rem; /* 🌟 略微縮小字體 */
         }
         .achievement-list li:last-child {
             border-bottom: none;
@@ -234,8 +293,8 @@
             font-weight: bold;
             color: #2c3e50;
             background: #f8f9fa;
-            padding: 4px 12px;
-            border-radius: 12px;
+            padding: 2px 10px; /* 縮小數值區塊 */
+            border-radius: 10px;
         }
 
         /* 🌟 新增：按鈕內部排版與待辦標籤 */
@@ -265,14 +324,23 @@
             <h1>全效英語實戰學習中心</h1>
         </div>
 
-        <div class="user-selector">
-            <label for="currentUser">當前使用者：</label>
-            <select id="currentUser">
-                <option value="Derek">Derek</option>
-                <option value="Joanna">Joanna</option>
-                <option value="Guest">訪客模式 (不記錄)</option>
-            </select>
+        <!-- 改為垂直排列，讓按鈕獨立在一行，提升觸控體驗 -->
+        <div class="user-selector" style="flex-direction: column; align-items: flex-start; gap: 12px;">
+            <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                <label for="currentUser">當前使用者：</label>
+                <select id="currentUser" style="width: 55%;">
+                    <option value="Derek">Derek</option>
+                    <option value="Joanna">Joanna</option>
+                    <option value="Guest">訪客模式 (不記錄)</option>
+                </select>
+            </div>
+            <div style="width: 100%; text-align: right; padding-top: 5px; border-top: 1px dashed #ecf0f1;">
+                <a href="#" onclick="openApplyModal()" style="font-size: 0.95rem; color: #3498db; text-decoration: none; font-weight: bold; padding: 5px;">
+                    ✨ 申請專屬帳號
+                </a>
+            </div>
         </div>
+        
 
         <!-- 🌟 新增：全域數據載入提示 -->
         <div id="global-loading">🔄 正在同步全域記憶數據...</div>
@@ -389,52 +457,277 @@
                 <div class="task-badge" id="badge-Part7">...</div>
             </a>
 
+            <!-- 🌟 大魔王戰情中心入口 -->
+            <div style="margin-top: 20px; text-align: center;">
+                <button onclick="enterBossHub()" style="background: linear-gradient(135deg, #e74c3c, #c0392b); color: white; border: none; padding: 15px 30px; border-radius: 12px; font-weight: bold; font-size: 1.2rem; cursor: pointer; box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4); width: 100%; max-width: 400px; transition: transform 0.2s;">
+                    ⚔️ 進入模擬考戰情中心
+                </button>
+            </div>
+
+            <script>
+                function enterBossHub() {
+                    let activeUser = document.getElementById('currentUser').value; // 動態獲取
+                    if (activeUser === 'Guest') {
+                        alert("訪客無法參加模擬考，請先申請專屬帳號！"); return;
+                    }
+                    window.location.href = `boss.html?user=${activeUser}`; // 替換為 activeUser
+                }
+            </script>
+
+            <div style="margin-top: 15px; text-align: center;">
+                <button onclick="window.location.href='roleplay.html'" style="background: #3498db; color: white; border: none; padding: 12px 25px; border-radius: 8px; font-weight: bold; font-size: 1.1rem; cursor: pointer; box-shadow: 0 4px 10px rgba(52, 152, 219, 0.3); width: 100%; max-width: 400px; transition: transform 0.2s;">
+                    🗣️ 進入 AI 口說實戰對練
+                </button>
+            </div>
+
+
         </div>
     </div>
 
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbynSXDVVI2Y7N5CCKEOwsWiEF3PM5Ib97D4VC_71VeqSoaMrx0-TpY6gzwkBz_m8NMddA/exec";
         const API_TOKEN = "derek_srs_2026";
-        const USER_PASSWORDS = { "Derek": "0000", "Joanna": "0000" };
+        
+        let systemMembers = {}; // 全域配置檔暫存區
+        let previousUser = "Guest"; // 🌟 新增：紀錄上一次成功驗證/選取的安全帳號
 
-        // 🌟 1. 大廳初始化與事件綁定
-        document.addEventListener('DOMContentLoaded', () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const userParam = urlParams.get('user');
-            const userSelect = document.getElementById('currentUser');
+        // 🌟 新增：全域中央驗證器 (Login Wall)
+        function authenticateUser(user) {
+            if (user === 'Guest') return true;
+            
+            // 檢查當前 Session 是否已經驗證過
+            let isAuthed = sessionStorage.getItem(`auth_${user}`);
+            if (isAuthed === 'true') return true;
 
-            if (userParam && userSelect) {
-                userSelect.value = userParam;
+            // 彈出密碼登入框
+            let pwd = prompt(`請輸入 ${user} 的專屬密碼：`);
+            if (systemMembers[user] && pwd === systemMembers[user].Password) {
+                sessionStorage.setItem(`auth_${user}`, 'true');
+                return true;
+            } else {
+                alert("❌ 密碼錯誤或取消登入！");
+                return false;
             }
-
-            // 綁定下拉選單切換事件
-            userSelect.addEventListener('change', () => {
-                fetchGlobalDashboard(userSelect.value);
-            });
-
-            // 初始載入儀表板
-            fetchGlobalDashboard(userSelect.value);
-        });
-
-        // 🌟 新增：日期格式化工具
-        function getLocalDateString(dateObj = new Date()) {
-            let year = dateObj.getFullYear();
-            let month = String(dateObj.getMonth() + 1).padStart(2, '0');
-            let day = String(dateObj.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
         }
 
-        // 🌟 2. 雙線並行撈取數據 (多益 + 口說)
+        // 🌟 1. XP 與等級計算引擎
+        function getLevelInfo(totalXP) {
+            let level = 1, nextLevelXP = 100;
+            for (let i = 1; i <= 100; i++) {
+                let reqXP = Math.floor(100 * Math.pow(i, 1.8));
+                if (totalXP >= reqXP) {
+                    level = i + 1; // 🐛 修正：突破門檻後，要晉升到下一級 (i + 1)
+                } else { 
+                    nextLevelXP = reqXP; 
+                    break; 
+                }
+            }
+            if (level >= 100) { level = 100; nextLevelXP = "MAX"; }
+            return {
+                level: level, currentXP: totalXP, nextLevelXP: nextLevelXP,
+                progressPercent: nextLevelXP === "MAX" ? 100 : Math.floor((totalXP / nextLevelXP) * 100)
+            };
+        }
+
+        // 🌟 20 大境界升級引擎
+        function getTitleBadge(level) {
+            const titles = [
+                "🌱 語言初心者", "🚀 溝通探索者", "💼 職場實戰家", "🗣️ 流利演說家", "⚔️ 雙語挑戰者", 
+                "🛡️ 國際談判官", "🎖️ 英語菁英", "💎 語言宗師", "🌌 史詩領航員", "👑 語言之神",
+                "🌀 時空旅人", "⚡ 閃電俠", "🔥 熾熱之心", "🌊 湛藍海洋", "🌪️ 風暴之眼",
+                "🏔️ 頂峰之上", "🌌 銀河守護", "⏳ 永恆智者", "🔮 預言者", "🏛️ 傳說締造者"
+            ];
+            
+            // 計算階級 (每 5 等一階)
+            let tierIndex = Math.floor((level - 1) / 5);
+            let suffix = "";
+            let displayName = "";
+
+            // 處理超越 20 階的擴充性
+            if (tierIndex >= titles.length) {
+                let overflow = tierIndex - titles.length + 1;
+                displayName = `傳奇境界 (${overflow})`;
+            } else {
+                displayName = titles[tierIndex];
+            }
+            
+            // 計算星等 (1-5 循環)
+            let starCount = ((level - 1) % 5) + 1;
+            let stars = "★".repeat(starCount) + "☆".repeat(5 - starCount);
+            
+            return {
+                titleName: displayName,
+                starsString: `<span style="color: #f1c40f; letter-spacing: 2px;">${stars}</span>`,
+                tierInfo: `目前境界: ${tierIndex + 1} / 20 (等級: ${level})`
+            };
+        }
+
+        // 🌟 1. 系統啟動與動態初始化
+        document.addEventListener('DOMContentLoaded', async () => {
+            const loadingUI = document.getElementById('global-loading');
+            loadingUI.style.display = 'block';
+            loadingUI.innerText = "⚙️ 正在載入系統配置與會員權限...";
+
+            try {
+                // 向後端請求 Members_Settings 的資料
+                const res = await fetch(`${API_URL}?action=getSystemConfig&token=${API_TOKEN}`);
+                const data = await res.json();
+                systemMembers = data.members || {};
+
+                buildUserSelector();
+
+                const urlParams = new URLSearchParams(window.location.search);
+                const userParam = urlParams.get('user');
+                const userSelect = document.getElementById('currentUser');
+
+                // 🌟 安全機制：如果 URL 帶了帳號且該帳號在當前 Session 已登入過，直接切換；否則預設為安全訪客
+                if (userParam && systemMembers[userParam]) {
+                    let isAuthed = sessionStorage.getItem(`auth_${userParam}`);
+                    if (isAuthed === 'true') {
+                        userSelect.value = userParam;
+                    } else {
+                        userSelect.value = "Guest"; // 未經驗證，降級為訪客
+                    }
+                } else {
+                    userSelect.value = "Guest"; // 預設安全開機為訪客
+                }
+
+                // 🌟 登入防護：當使用者「準備切換」下拉選單時，記錄前一個安全狀態
+                userSelect.addEventListener('focus', function() {
+                    previousUser = this.value; 
+                });
+
+                // 🌟 登入牆：當使用者「選擇其他帳號」時進行密碼攔截
+                userSelect.addEventListener('change', function() {
+                    let targetUser = this.value;
+                    if (targetUser !== 'Guest') {
+                        let success = authenticateUser(targetUser);
+                        if (!success) {
+                            this.value = previousUser; // 驗證失敗，還原成切換前的安全帳號
+                            return;
+                        }
+                    }
+                    previousUser = targetUser; // 驗證成功，更新安全帳號標記
+                    updateCountdownUI(targetUser);
+                    fetchGlobalDashboard(targetUser);
+                });
+
+                // 初次載入渲染大廳
+                let finalUser = userSelect.value;
+                previousUser = finalUser;
+                updateCountdownUI(finalUser);
+                fetchGlobalDashboard(finalUser);
+
+            } catch (error) {
+                loadingUI.innerText = "❌ 系統配置載入失敗，請確認 API 版本已更新。";
+                console.error("Config Fetch Error:", error);
+            }
+        });
+        
+        // 🌟 2. 動態建立下拉選單
+        function buildUserSelector() {
+            const userSelect = document.getElementById('currentUser');
+            userSelect.innerHTML = ""; // 清空舊選項
+            
+            for (let uid in systemMembers) {
+                let opt = document.createElement('option');
+                opt.value = uid;
+                opt.innerText = uid;
+                userSelect.appendChild(opt);
+            }
+            
+            let guestOpt = document.createElement('option');
+            guestOpt.value = "Guest";
+            guestOpt.innerText = "訪客模式 (不記錄)";
+            userSelect.appendChild(guestOpt);
+        }
+
+        // 🌟 3. 動態更新玩家卡片與目標倒數
+        function updateCountdownUI(user) {
+            let topUI = document.getElementById('rpg-profile-container');
+            if (!topUI) {
+                topUI = document.createElement('div');
+                topUI.id = 'rpg-profile-container';
+                document.querySelector('.user-selector').insertAdjacentElement('afterend', topUI);
+            }
+
+            if (user === 'Guest' || !systemMembers[user]) {
+                topUI.style.display = 'none';
+                return;
+            }
+
+            let conf = systemMembers[user];
+            let totalXP = parseInt(conf.Total_XP) || 0;
+            let rpgData = getLevelInfo(totalXP);
+            let badge = getTitleBadge(rpgData.level);
+
+            // 計算目標倒數
+            let countdownHtml = "";
+            if (conf.Target_Exam_Date) {
+                let daysDiff = Math.ceil((new Date(conf.Target_Exam_Date + "T00:00:00").getTime() - new Date().getTime()) / (1000 * 3600 * 24));
+                countdownHtml = `
+                    <div style="background: rgba(255,255,255,0.15); padding: 10px; border-radius: 10px; text-align: center; margin-top: 15px;">
+                        <span style="font-size: 0.85rem; opacity: 0.9;">🎯 距離目標日</span><br>
+                        <span style="font-size: 1.5rem; font-weight: bold;">${daysDiff > 0 ? daysDiff : 0} 天</span>
+                    </div>`;
+            }
+
+            // 重構卡片佈局：使用 Flexbox 在大螢幕併排，手機版自動往下折
+            topUI.innerHTML = `
+                <div style="background: linear-gradient(135deg, #2c3e50, #3498db); color: white; padding: 15px; border-radius: 15px; margin-top: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: flex; flex-wrap: wrap; gap: 15px;">
+                    
+                    <!-- 左側/上方：個人資料與目標 -->
+                    <div style="flex: 1 1 200px; display: flex; flex-direction: column; justify-content: center;">
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <div style="font-size: 2.5rem; background: rgba(255,255,255,0.2); width: 60px; height: 60px; border-radius: 50%; display: flex; justify-content: center; align-items: center;">👤</div>
+                            <div>
+                                <h2 style="margin: 0; font-size: 1.4rem;">${user}</h2>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <div style="font-size: 0.95rem; font-weight: bold; margin: 2px 0;">
+                                        ${badge.titleName} ${badge.starsString}
+                                    </div>
+                                    <!-- 🌟 不顯眼的資訊提示圖示 -->
+                                    <span title="${badge.tierInfo}" style="cursor: help; color: rgba(255,255,255,0.6); font-size: 0.8rem; border: 1px solid rgba(255,255,255,0.3); border-radius: 50%; width: 16px; height: 16px; display: inline-flex; justify-content: center; align-items: center;">?</span>
+                                </div>
+                                <div style="font-size: 0.8rem; opacity: 0.9;">Lv. ${rpgData.level} | ${rpgData.currentXP}/${rpgData.nextLevelXP} XP</div>
+                            </div>
+                        </div>
+                        
+                        <div style="width: 100%; background: rgba(0,0,0,0.3); height: 6px; border-radius: 3px; margin-top: 12px; overflow: hidden;">
+                            <div style="width: ${rpgData.progressPercent}%; background: #2ecc71; height: 100%; transition: width 1s;"></div>
+                        </div>
+
+                        <!-- 整合後的快速設定按鈕 -->
+                        <div style="display: flex; gap: 8px; margin-top: 12px;">
+                            <button onclick="openSettingsModal()" style="flex: 1; font-size: 0.8rem; background: rgba(255,255,255,0.2); color: white; border: none; padding: 6px; border-radius: 6px; cursor: pointer;">⚙️ 個人設定</button>
+                        </div>
+                        ${countdownHtml}
+                    </div>
+
+                    <!-- 右側/下方：雷達圖 -->
+                    <div style="flex: 1 1 150px; background: rgba(255,255,255,0.95); border-radius: 10px; padding: 10px; position: relative; min-height: 180px;">
+                        <h3 style="margin: 0 0 5px 0; font-size: 0.85rem; color: #2c3e50; text-align: center;">綜合戰力</h3>
+                        <div style="position: absolute; top: 25px; left: 5px; right: 5px; bottom: 5px;">
+                            <canvas id="radarChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            `;
+            topUI.style.display = 'block';
+        }
+
+        // 🌟 4. 雙線並行撈取數據 (維持上一版的邏輯)
         async function fetchGlobalDashboard(user) {
             const loadingUI = document.getElementById('global-loading');
             const dashboardUI = document.getElementById('global-dashboard');
 
             loadingUI.style.display = 'block';
+            loadingUI.innerText = "🔄 正在同步全域記憶數據...";
             dashboardUI.style.display = 'none';
 
             try {
                 let fetchUser = (user === 'Guest') ? 'Derek' : user;
-
+                
                 const [toeicRes, speakingRes] = await Promise.all([
                     fetch(`${API_URL}?action=getData&app=toeic&user=${fetchUser}&token=${API_TOKEN}`),
                     fetch(`${API_URL}?action=getData&app=speaking&user=${fetchUser}&token=${API_TOKEN}`)
@@ -442,18 +735,17 @@
 
                 const toeicData = await toeicRes.json();
                 const speakingData = await speakingRes.json();
-
+                
                 let allCards = [...(toeicData.cards || []), ...(speakingData.cards || [])];
 
-                // 🌟 增量更新：計算各單元的「今日待辦」
                 let todayStr = getLocalDateString();
                 let dueCounts = { "speaking": 0, "Part1": 0, "Part2": 0, "Part3": 0, "Part4": 0, "Part5": 0, "Part6": 0, "Part7": 0 };
 
                 allCards.forEach(c => {
                     let isStuck = parseInt(c.isStuck) || 0;
-                    if (isStuck === 1) return; // 隔離題不計入待辦
+                    if (isStuck === 1) return;
 
-                    if (user === 'Guest') c.interval = 0; // 訪客模式強制歸零
+                    if (user === 'Guest') c.interval = 0;
 
                     let isDue = (!c.nextReviewDate || c.nextReviewDate === "" || c.nextReviewDate <= todayStr);
                     if (isDue) {
@@ -465,34 +757,65 @@
                     }
                 });
 
-                // 🌟 更新儀表板標籤
+                // 🌟 動態渲染各單元的 XP 進度條
                 ['speaking', 'Part1', 'Part2', 'Part3', 'Part4', 'Part5', 'Part6', 'Part7'].forEach(part => {
                     let badge = document.getElementById(`badge-${part}`);
-                    if (badge) {
-                        if (dueCounts[part] > 0) {
-                            badge.innerHTML = `<span style="color:#e74c3c; font-weight:bold;">🔥 待辦: ${dueCounts[part]}</span>`;
-                        } else {
-                            badge.innerHTML = `<span style="color:#2ecc71; font-weight:bold;">✅ 已完成</span>`;
-                        }
+                    if (badge && user !== 'Guest') {
+                        let conf = systemMembers[user] || {};
+                        let goalKey = (part === 'speaking') ? 'Goal_Speaking' : `Goal_${part}`;
+                        let dailyGoalCount = conf[goalKey] || 10;
+                        
+                        // 計算該單元每日總目標 XP
+                        let baseXP = 15;
+                        if (part === 'speaking') baseXP = 20;
+                        else if (part === 'Part1') baseXP = 10;
+                        else if (['Part3', 'Part4'].includes(part)) baseXP = 80;
+                        else if (part === 'Part6') baseXP = 90;
+                        else if (part === 'Part7') baseXP = 120;
+                        
+                        let targetXP = dailyGoalCount * baseXP;
+                        let earnedXP = getTodayXP(user, part); // 呼叫先前寫的 LocalStorage 讀取 (請記得一併改名為 getTodayXP)
+                        
+                        // 計算百分比 (最高100%)
+                        let percent = Math.min(100, Math.floor((earnedXP / targetXP) * 100)) || 0;
+                        
+                        let barColor = percent >= 100 ? "#2ecc71" : "#3498db"; // 達標變綠色
+                        
+                        let html = `
+                            <div style="text-align: right; margin-top: 5px;">
+                                <div style="font-size: 0.8rem; font-weight: bold; color: #7f8c8d; margin-bottom: 3px;">
+                                    ${percent >= 100 ? '✅ 達標' : '⚡ XP'} ${earnedXP} / ${targetXP}
+                                </div>
+                                <div style="width: 100px; background: #ecf0f1; height: 6px; border-radius: 3px; overflow: hidden; display: inline-block;">
+                                    <div style="width: ${percent}%; background: ${barColor}; height: 100%; transition: width 0.5s;"></div>
+                                </div>
+                            </div>
+                        `;
+                        badge.innerHTML = html;
                     }
                 });
 
                 renderDashboard(allCards);
-
+                renderRadarChart(allCards); // 🌟 新增這行：觸發雷達圖渲染
                 loadingUI.style.display = 'none';
                 dashboardUI.style.display = 'block';
 
             } catch (error) {
                 loadingUI.innerText = "❌ 數據同步失敗，請檢查網路連線。";
-                console.error("Dashboard Fetch Error:", error);
             }
         }
 
-        // 🌟 3. 七階級統計引擎
-        // 🌟 更新版：純粹渲染題數
+        // 日期格式化工具
+        function getLocalDateString(dateObj = new Date()) {
+            let year = dateObj.getFullYear();
+            let month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            let day = String(dateObj.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // 七階級統計引擎
         function renderDashboard(cardsArray) {
             let total = cardsArray.length;
-            // 如果是在 index.html，會有這個總數標籤
             let totalCounter = document.getElementById('total-cards-count');
             if (totalCounter) totalCounter.innerText = total;
 
@@ -502,7 +825,6 @@
 
             cardsArray.forEach(card => {
                 if (parseInt(card.isStuck) === 1) return; 
-
                 let days = parseFloat(card.interval) || 0;
                 if (days <= 1) levels[0]++;
                 else if (days <= 6) levels[1]++;
@@ -514,12 +836,11 @@
             });
 
             for (let i = 0; i <= 6; i++) {
-                // 直接寫入絕對題數，拔除百分比
                 document.getElementById(`lvl${i}-text`).innerText = `${levels[i]} 題`;
             }
         }
 
-        // 🌟 4. 智慧路由功能與密碼鎖 (維持您原有的邏輯)
+        // 🌟 5. 智慧路由功能與密碼鎖 (改用動態密碼驗證)
         function navigateTo(targetPage, part) {
             const user = document.getElementById('currentUser').value;
 
@@ -527,11 +848,12 @@
                 let isAuthed = sessionStorage.getItem(`auth_${user}`);
                 if (!isAuthed) {
                     let pwd = prompt(`請輸入 ${user} 的專屬密碼：`);
-                    if (pwd === USER_PASSWORDS[user]) {
+                    // 驗證密碼是否與後端傳來的一致
+                    if (systemMembers[user] && pwd === systemMembers[user].Password) {
                         sessionStorage.setItem(`auth_${user}`, 'true');
                     } else {
                         alert("❌ 密碼錯誤！請重新輸入。");
-                        return;
+                        return; 
                     }
                 }
             }
@@ -542,7 +864,353 @@
             }
             window.location.href = url;
         }
-    </script>
-</body>
 
+        // 🌟 本機進度追蹤器 (解決每日重置難題)
+        function getTodayXP(user, partName) {
+            let today = getLocalDateString();
+            let key = `srs_xp_${user}_${today}`;
+            let data = JSON.parse(localStorage.getItem(key) || '{}');
+            return data[partName] || 0;
+        }
+
+        // 全域變數，用來儲存圖表實例以利更新
+        let userRadarChart = null;
+
+        // 🌟 戰力雷達渲染引擎
+        function renderRadarChart(allCards) {
+            const ctx = document.getElementById('radarChart');
+            if (!ctx) return;
+
+            // 1. 初始化各單元的熟練度數據盆
+            let stats = {
+                Part1: { sum: 0, count: 0 },
+                Part2: { sum: 0, count: 0 },
+                Part3: { sum: 0, count: 0 },
+                Part4: { sum: 0, count: 0 },
+                Part5: { sum: 0, count: 0 },
+                Part6: { sum: 0, count: 0 },
+                Part7: { sum: 0, count: 0 }
+            };
+
+            // 2. 累加使用者的實際 EaseFactor
+            allCards.forEach(card => {
+                let part = card.Part;
+                if (stats[part] !== undefined) {
+                    stats[part].sum += (parseFloat(card.easeFactor) || 2.5);
+                    stats[part].count += 1;
+                }
+            });
+
+            // 3. 換算為 0~100 的戰力分數
+            let dataScores = [];
+            ['Part1', 'Part2', 'Part3', 'Part4', 'Part5', 'Part6', 'Part7'].forEach(part => {
+                if (stats[part].count === 0) {
+                    dataScores.push(0); // 沒做過的題目預設 0 分
+                } else {
+                    let avgEase = stats[part].sum / stats[part].count;
+                    // 公式：(Ease - 1.3) / (3.0 - 1.3) * 100，最低 0，最高 100
+                    let score = Math.floor(((avgEase - 1.3) / 1.7) * 100);
+                    score = Math.max(0, Math.min(100, score)); // 限制在 0-100 之間
+                    
+                    // 若新題基準為 2.5，大約會落在 70 分左右
+                    dataScores.push(score);
+                }
+            });
+
+            // 4. 繪製或更新 Chart.js 雷達圖
+            if (userRadarChart) {
+                userRadarChart.data.datasets[0].data = dataScores;
+                userRadarChart.update();
+            } else {
+                userRadarChart = new Chart(ctx, {
+                    type: 'radar',
+                    data: {
+                        labels: ['P1 圖片', 'P2 應答', 'P3 對話', 'P4 獨白', 'P5 文法', 'P6 克漏字', 'P7 閱讀'],
+                        datasets: [{
+                            label: '熟練度戰力 (Max: 100)',
+                            data: dataScores,
+                            backgroundColor: 'rgba(52, 152, 219, 0.4)', // 科技藍半透明
+                            borderColor: 'rgba(52, 152, 219, 1)',
+                            pointBackgroundColor: '#f1c40f',
+                            pointBorderColor: '#fff',
+                            pointHoverBackgroundColor: '#fff',
+                            pointHoverBorderColor: '#f1c40f',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            r: {
+                                // 🌟 將原本的白色線條改為深灰色半透明，找回消失的網格
+                                angleLines: { color: 'rgba(0, 0, 0, 0.1)' }, 
+                                grid: { 
+                                    color: 'rgba(0, 0, 0, 0.1)',
+                                    circular: false // 強制顯示為正多邊形
+                                },
+                                pointLabels: {
+                                    color: '#34495e',
+                                    font: { size: 10, family: 'sans-serif', weight: 'bold' }
+                                },
+                                ticks: {
+                                    display: false,
+                                    min: 0,
+                                    max: 100,
+                                    stepSize: 20 // 顯示 5 圈等距多邊形，建立明確的百分比基準
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: { display: false } // 隱藏圖例以節省空間
+                        }
+                    }
+                });
+            }
+        }
+        
+    </script>
+
+    <!-- 🌟 會員申請面板 (預設隱藏) -->
+    <div id="apply-modal" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center;">
+        <div style="background: white; width: 90%; max-width: 400px; border-radius: 15px; padding: 25px;">
+            <h2 style="margin-top: 0; color: #2c3e50;">📝 申請專屬帳號</h2>
+            <p style="font-size: 0.85rem; color: #7f8c8d;">本系統為邀請制，申請後需經管理員審核。</p>
+            
+            <input type="text" id="apply-id" placeholder="期望的登入 ID (如: Alan)" style="width: 100%; padding: 12px; margin-top: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box;">
+            
+            <input type="email" id="apply-email" placeholder="您的聯絡 Email (用於接收密碼)" style="width: 100%; padding: 12px; margin-top: 15px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box;">
+            
+            <input type="text" id="apply-reason" placeholder="申請理由 / 您是誰？" style="width: 100%; padding: 12px; margin-top: 15px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box;">
+
+            <div style="background: #fdfefe; padding: 12px; border-radius: 8px; margin-top: 15px; border-left: 4px solid #e74c3c;">
+                <label style="font-size: 0.85rem; font-weight: bold; color: #c0392b;">防機器人通關密語：高雄機場的 IATA 代碼是？</label>
+                <input type="text" id="apply-passcode" placeholder="請輸入 3 個英文字母" style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; text-transform: uppercase;">
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button onclick="document.getElementById('apply-modal').style.display='none'" style="flex: 1; padding: 12px; background: #ecf0f1; border: none; border-radius: 8px; font-weight:bold; cursor: pointer;">取消</button>
+                <button onclick="submitApplication(this)" style="flex: 1; padding: 12px; background: #3498db; color: white; border: none; border-radius: 8px; font-weight:bold; cursor: pointer;">送出申請</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 開啟申請面板的函數 (您可以把它綁在登入畫面的某個小按鈕上)
+        function openApplyModal() {
+            document.getElementById('apply-modal').style.display = 'flex';
+        }
+
+        async function submitApplication(btn) {
+            let id = document.getElementById('apply-id').value;
+            let email = document.getElementById('apply-email').value;
+            let reason = document.getElementById('apply-reason').value;
+            let passcode = document.getElementById('apply-passcode').value;
+
+            if(!id || !email || !passcode) {
+                alert("請填寫 ID、Email 與通關密語！"); return;
+            }
+
+            btn.innerText = "送出中...";
+            btn.disabled = true;
+
+            let payload = {
+                token: API_TOKEN, // 您的系統 API_TOKEN
+                action: "applyMembership",
+                desiredId: id,
+                email: email,
+                reason: reason,
+                passcode: passcode
+            };
+
+            try {
+                let res = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload),
+                    headers: { 'Content-Type': 'text/plain' }
+                });
+                let result = await res.json();
+                
+                if (result.status === "success") {
+                    alert("✅ 申請已送出！請靜待 Derek 審核，通過後將會發送密碼至您的 Email。");
+                    document.getElementById('apply-modal').style.display = 'none';
+                } else {
+                    alert("❌ 錯誤：" + result.message);
+                }
+            } catch(e) {
+                alert("網路異常，請稍後再試。");
+            }
+            btn.innerText = "送出申請";
+            btn.disabled = false;
+        }
+    </script>
+
+    <!-- 🌟 個人化設定中心面板 -->
+    <div id="settings-modal" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box;">
+        <div style="background: white; width: 100%; max-width: 500px; max-height: 90vh; border-radius: 15px; padding: 25px; overflow-y: auto;">
+            <h2 style="margin-top: 0; color: #2c3e50; border-bottom: 2px solid #ecf0f1; padding-bottom: 10px;">⚙️ 個人化設定</h2>
+            
+            <!-- 區塊 1：帳號安全 -->
+            <div style="background: #fdfefe; border: 1px solid #ecf0f1; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <h3 style="margin: 0 0 10px 0; font-size: 1rem; color: #34495e;">🔑 修改密碼 (選填)</h3>
+                <input type="password" id="set-pwd-old" placeholder="目前密碼 (若需修改密碼必填)" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box;">
+                <input type="password" id="set-pwd-new" placeholder="新密碼" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box;">
+            </div>
+
+            <!-- 區塊 2：多益考期與目標 -->
+            <div style="background: #fdfefe; border: 1px solid #ecf0f1; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <h3 style="margin: 0 0 10px 0; font-size: 1rem; color: #34495e;">🎯 目標考期設定</h3>
+                
+                <!-- 近期官方考期參考表 -->
+                <div style="background: #ecf0f1; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 0.85rem;">
+                    <strong>📅 近期官方測驗參考 (2026下半年)</strong>
+                    <ul style="margin: 5px 0; padding-left: 20px; color: #7f8c8d;">
+                        <li>8/23 (日) - 報名至 7/28</li>
+                        <li>9/27 (日) - 報名至 9/01</li>
+                        <li>10/25 (日) - 報名至 9/29</li>
+                    </ul>
+                    <a href="https://www.toeic.com.tw/" target="_blank" style="color: #3498db; text-decoration: none;">👉 前往多益官網報名</a>
+                </div>
+
+                <label style="font-size: 0.9rem; font-weight: bold; color: #7f8c8d;">您的專屬目標日：</label>
+                <input type="date" id="set-target-date" style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-family: inherit;">
+            </div>
+
+            <!-- 區塊 3：每日配額設定 -->
+            <div style="background: #fdfefe; border: 1px solid #ecf0f1; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <h3 style="margin: 0 0 10px 0; font-size: 1rem; color: #34495e;">📈 每日題數配額</h3>
+                
+                <div style="margin-bottom: 15px;">
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="checkbox" id="set-ai-mode" onchange="toggleManualGoals()" style="width: 18px; height: 18px; margin-right: 10px;">
+                        <span style="font-weight: bold; color: #e67e22;">🤖 啟用 AI 智慧大腦調配目標</span>
+                    </label>
+                    <p style="font-size: 0.8rem; color: #7f8c8d; margin: 5px 0 0 28px;">開啟後，系統將依據您的答題熟練度與大腦能量，每天半夜自動為您調配隔日的題型比例。</p>
+                </div>
+
+                <div id="manual-goals-area" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div><label style="font-size: 0.8rem;">🗣️ 口說題數</label><input type="number" id="goal-spk" min="0" style="width: 100%; padding: 8px; box-sizing: border-box;"></div>
+                    <div><label style="font-size: 0.8rem;">P1 圖片</label><input type="number" id="goal-p1" min="0" style="width: 100%; padding: 8px; box-sizing: border-box;"></div>
+                    <div><label style="font-size: 0.8rem;">P2 應答</label><input type="number" id="goal-p2" min="0" style="width: 100%; padding: 8px; box-sizing: border-box;"></div>
+                    <div><label style="font-size: 0.8rem;">P3 對話(題組)</label><input type="number" id="goal-p3" min="0" style="width: 100%; padding: 8px; box-sizing: border-box;"></div>
+                    <div><label style="font-size: 0.8rem;">P4 獨白(題組)</label><input type="number" id="goal-p4" min="0" style="width: 100%; padding: 8px; box-sizing: border-box;"></div>
+                    <div><label style="font-size: 0.8rem;">P5 文法</label><input type="number" id="goal-p5" min="0" style="width: 100%; padding: 8px; box-sizing: border-box;"></div>
+                    <div><label style="font-size: 0.8rem;">P6 克漏(題組)</label><input type="number" id="goal-p6" min="0" style="width: 100%; padding: 8px; box-sizing: border-box;"></div>
+                    <div><label style="font-size: 0.8rem;">P7 閱讀(題組)</label><input type="number" id="goal-p7" min="0" style="width: 100%; padding: 8px; box-sizing: border-box;"></div>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button onclick="document.getElementById('settings-modal').style.display='none'" style="flex: 1; padding: 12px; background: #ecf0f1; border: none; border-radius: 8px; font-weight:bold; cursor: pointer;">取消</button>
+                <button onclick="submitSettings(this)" style="flex: 2; padding: 12px; background: #2ecc71; color: white; border: none; border-radius: 8px; font-weight:bold; cursor: pointer;">💾 儲存設定</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        
+
+        // 🌟 開啟個人化設定面板 (補回遺失的函數)
+        function openSettingsModal() {
+            let activeUser = document.getElementById('currentUser').value; // 動態獲取當前使用者
+            if (activeUser === 'Guest') {
+                alert("訪客模式無法設定目標。"); return;
+            }
+            
+            // 🔒 安全守衛：開啟設定前，雙重確認是否有當前 Session 驗證
+            let success = authenticateUser(activeUser);
+            if (!success) return;
+            
+            // 讀取當前使用者的歷史設定值，填入表單中
+            let conf = systemMembers[activeUser] || {};
+            document.getElementById('set-target-date').value = conf.Target_Exam_Date || "";
+            document.getElementById('set-ai-mode').checked = (conf.AI_Mode === true || conf.AI_Mode === "true");
+            
+            // 填入各項目標
+            document.getElementById('goal-spk').value = conf.Goal_Speaking || 10;
+            document.getElementById('goal-p1').value = conf.Goal_Part1 || 10;
+            document.getElementById('goal-p2').value = conf.Goal_Part2 || 10;
+            document.getElementById('goal-p3').value = conf.Goal_Part3 || 10;
+            document.getElementById('goal-p4').value = conf.Goal_Part4 || 10;
+            document.getElementById('goal-p5').value = conf.Goal_Part5 || 10;
+            document.getElementById('goal-p6').value = conf.Goal_Part6 || 10;
+            document.getElementById('goal-p7').value = conf.Goal_Part7 || 10;
+            
+            toggleManualGoals(); // 依據 AI 模式決定是否鎖定輸入框
+            
+            // 清空修改密碼欄位
+            document.getElementById('set-pwd-old').value = ""; 
+            document.getElementById('set-pwd-new').value = "";
+            
+            document.getElementById('settings-modal').style.display = 'flex';
+        }
+
+        // 切換 AI 模式時鎖定手動輸入
+        function toggleManualGoals() {
+            let isAiOn = document.getElementById('set-ai-mode').checked;
+            let inputs = document.getElementById('manual-goals-area').querySelectorAll('input');
+            inputs.forEach(input => {
+                input.disabled = isAiOn;
+                input.style.backgroundColor = isAiOn ? "#ecf0f1" : "#fff";
+            });
+        }
+
+        // 送出設定
+        async function submitSettings(btn) {
+            let activeUser = document.getElementById('currentUser').value; // 動態獲取
+            let oldPwd = document.getElementById('set-pwd-old').value;
+            let newPwd = document.getElementById('set-pwd-new').value;
+
+            if (newPwd && !oldPwd) {
+                alert("⚠️ 若要修改密碼，必須輸入目前密碼！"); return;
+            }
+
+            btn.innerText = "儲存中...";
+            btn.disabled = true;
+
+            let payload = {
+                token: API_TOKEN,
+                action: "saveUserSettings",
+                user: activeUser, // 替換為 activeUser
+                oldPassword: oldPwd,
+                newPassword: newPwd,
+                targetDate: document.getElementById('set-target-date').value,
+                aiMode: document.getElementById('set-ai-mode').checked,
+                goals: {
+                    speaking: document.getElementById('goal-spk').value,
+                    p1: document.getElementById('goal-p1').value,
+                    p2: document.getElementById('goal-p2').value,
+                    p3: document.getElementById('goal-p3').value,
+                    p4: document.getElementById('goal-p4').value,
+                    p5: document.getElementById('goal-p5').value,
+                    p6: document.getElementById('goal-p6').value,
+                    p7: document.getElementById('goal-p7').value
+                }
+            };
+
+            try {
+                let res = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload),
+                    headers: { 'Content-Type': 'text/plain' }
+                });
+                let result = await res.json();
+                
+                if (result.status === "success") {
+                    alert("✅ 設定已成功儲存！");
+                    document.getElementById('settings-modal').style.display = 'none';
+                    // 重新整理網頁以載入最新設定與進度條
+                    window.location.reload(); 
+                } else {
+                    alert("❌ 儲存失敗：" + result.message);
+                }
+            } catch (e) {
+                alert("網路異常，請稍後再試。");
+            }
+            btn.innerText = "💾 儲存設定";
+            btn.disabled = false;
+        }
+    </script>
+
+</body>
 </html>

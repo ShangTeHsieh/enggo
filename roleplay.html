@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 口說實戰對練</title>
+    <style>
+        :root { --bg-color: #ecf0f1; --chat-bg: #fff; --user-msg: #3498db; --ai-msg: #ecf0f1; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; height: 100vh; box-sizing: border-box; }
+        #chat-container { width: 100%; max-width: 500px; flex: 1; background: var(--chat-bg); border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: flex; flex-direction: column; overflow: hidden; }
+        #header { background: #2c3e50; color: white; padding: 15px; text-align: center; font-weight: bold; font-size: 1.2rem; }
+        #messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+        .msg { max-width: 80%; padding: 12px 16px; border-radius: 15px; line-height: 1.5; font-size: 1rem; animation: fadeIn 0.3s ease-in-out; }
+        .msg.user { background: var(--user-msg); color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
+        .msg.ai { background: var(--ai-msg); color: #2c3e50; align-self: flex-start; border-bottom-left-radius: 2px; }
+        #controls { padding: 20px; background: #fff; border-top: 1px solid #bdc3c7; text-align: center; }
+        #btn-mic { width: 80px; height: 80px; border-radius: 50%; background: #e74c3c; color: white; border: none; font-size: 2rem; cursor: pointer; box-shadow: 0 4px 10px rgba(231,76,60,0.4); transition: transform 0.1s, background 0.3s; display: flex; justify-content: center; align-items: center; margin: 0 auto; }
+        #btn-mic.recording { background: #c0392b; animation: pulse 1s infinite; }
+        #status-text { margin-top: 15px; color: #7f8c8d; font-size: 0.9rem; font-weight: bold; min-height: 20px; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(231,76,60,0.7); } 70% { box-shadow: 0 0 0 20px rgba(231,76,60,0); } 100% { box-shadow: 0 0 0 0 rgba(231,76,60,0); } }
+    </style>
+</head>
+<body>
+
+    <div id="chat-container">
+        <div id="header">
+            <select id="scenario-selector" onchange="changeScenario()" style="width:100%; padding:8px; border-radius:6px; background:#34495e; color:white; border:none; font-weight:bold; font-size:1rem;">
+                <option value="aci_networking">🌐 曼谷 ACI 會議交流</option>
+                <option value="gse_regulations">⚡ GSE 充電站規範技術討論</option>
+                <option value="pump_bidding">💧 水壓站汰換工程招標答詢</option>
+                <option value="daily_travel">✈️ 機場海關與日常旅遊</option>
+            </select>
+        </div>
+        <div id="messages">
+            <div class="msg ai">Hello! Are you also attending the ACI RACE conference? It's great to see delegates from Taiwan here in Bangkok!</div>
+        </div>
+        <div id="controls">
+            <button id="btn-mic" onclick="toggleMic()">🎙️</button>
+            <div id="status-text">點擊麥克風開始說話</div>
+            <button onclick="window.location.href='index.html'" style="margin-top: 15px; padding: 8px 15px; border: none; background: #bdc3c7; border-radius: 6px; cursor: pointer;">返回大廳</button>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbynSXDVVI2Y7N5CCKEOwsWiEF3PM5Ib97D4VC_71VeqSoaMrx0-TpY6gzwkBz_m8NMddA/exec"; // ⚠️ 請填寫您的 GAS 網址
+        
+        // 您的 Google Doc ID (請替換為您第一步建立的文件 ID)
+        const KNOWLEDGE_DOC_ID = "在此貼上您的_Google_Doc_ID"; 
+
+        <!-- HTML 選單區塊修改為預設載入中 -->
+        <div id="header">
+            <select id="scenario-selector" onchange="changeScenario()" style="width:100%; padding:8px; border-radius:6px; background:#34495e; color:white; border:none; font-weight:bold; font-size:1rem;">
+                <option value="">🔄 正在載入最新實戰情境...</option>
+            </select>
+        </div>
+
+        // JavaScript 替換為動態拉取邏輯
+        let dynamicScenarios = [];
+        let SYSTEM_PROMPT = "";
+        let chatHistory = [];
+
+        // 頁面載入時，自動去後端抓取情境清單
+        window.onload = async function() {
+            try {
+                let res = await fetch(`${API_URL}?action=getScenarios`);
+                let data = await res.json();
+                
+                if (data.status === 'success' && data.scenarios.length > 0) {
+                    dynamicScenarios = data.scenarios;
+                    
+                    let selector = document.getElementById('scenario-selector');
+                    selector.innerHTML = ''; // 清空預設選項
+                    
+                    dynamicScenarios.forEach((s, index) => {
+                        let opt = document.createElement('option');
+                        opt.value = index;
+                        opt.innerText = s.Title;
+                        selector.appendChild(opt);
+                    });
+                    
+                    // 自動載入第一個情境
+                    changeScenario();
+                } else {
+                    alert("目前題庫尚無情境，請等待 AI 大腦產出。");
+                }
+            } catch(e) {
+                alert("載入情境失敗，請確認網路連線。");
+            }
+        };
+
+        function changeScenario() {
+            let index = document.getElementById('scenario-selector').value;
+            let currentData = dynamicScenarios[index];
+            
+            SYSTEM_PROMPT = currentData.System_Prompt;
+            chatHistory = [{ "role": "model", "parts": [{ "text": currentData.First_Message }] }];
+            
+            document.getElementById('messages').innerHTML = ''; // 清空聊天畫面
+            appendMessage(currentData.First_Message, 'ai');
+            stopMic();
+            // 自動發音開場白
+            playTTS(currentData.First_Message);
+        }
+
+        let recognition;
+        let isRecording = false;
+
+        // 初始化語音辨識 (Web Speech API)
+        if ('webkitSpeechRecognition' in window) {
+            recognition = new webkitSpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+
+            recognition.onstart = () => {
+                isRecording = true;
+                document.getElementById('btn-mic').classList.add('recording');
+                document.getElementById('status-text').innerText = "🔴 聆聽中 (請說英文)...";
+            };
+
+            recognition.onresult = (event) => {
+                let transcript = event.results[0][0].transcript;
+                appendMessage(transcript, 'user');
+                chatHistory.push({ "role": "user", "parts": [{ "text": transcript }] });
+                sendToAI();
+            };
+
+            recognition.onerror = (event) => {
+                document.getElementById('status-text').innerText = "⚠️ 辨識失敗，請再試一次";
+                stopMic();
+            };
+
+            recognition.onend = () => {
+                stopMic();
+            };
+        } else {
+            alert("您的瀏覽器不支援語音辨識功能，請使用 Chrome 或 Safari。");
+        }
+
+        function toggleMic() {
+            if (!recognition) return;
+            if (isRecording) {
+                recognition.stop();
+            } else {
+                window.speechSynthesis.cancel(); // 打斷 AI 說話
+                recognition.start();
+            }
+        }
+
+        function stopMic() {
+            isRecording = false;
+            document.getElementById('btn-mic').classList.remove('recording');
+            if(document.getElementById('status-text').innerText.includes("聆聽中")) {
+                document.getElementById('status-text').innerText = "處理中...";
+            }
+        }
+
+        function appendMessage(text, sender) {
+            let msgDiv = document.createElement('div');
+            msgDiv.className = `msg ${sender}`;
+            msgDiv.innerText = text;
+            document.getElementById('messages').appendChild(msgDiv);
+            document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+        }
+
+        async function sendToAI() {
+            document.getElementById('status-text').innerText = "⏳ 對方正在思考...";
+            document.getElementById('btn-mic').disabled = true;
+
+            try {
+                let res = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'chatGemini',
+                        systemPrompt: SYSTEM_PROMPT,
+                        history: chatHistory
+                    }),
+                    headers: { 'Content-Type': 'text/plain' }
+                });
+                let result = await res.json();
+                
+                if (result.status === 'success') {
+                    let aiText = result.reply;
+                    appendMessage(aiText, 'ai');
+                    chatHistory.push({ "role": "model", "parts": [{ "text": aiText }] });
+                    document.getElementById('status-text').innerText = "點擊麥克風開始說話";
+                    playTTS(aiText);
+                } else {
+                    document.getElementById('status-text').innerText = "⚠️ 網路異常";
+                }
+            } catch (e) {
+                document.getElementById('status-text').innerText = "⚠️ 連線失敗";
+            }
+            document.getElementById('btn-mic').disabled = false;
+        }
+
+        function playTTS(text) {
+            window.speechSynthesis.cancel();
+            // 移除給使用者的 Tip 提示字眼，不讓系統唸出來干擾對話節奏
+            let spokenText = text.replace(/\(Tip:.*?\)/gi, '');
+            let utterance = new SpeechSynthesisUtterance(spokenText);
+            
+            let voices = window.speechSynthesis.getVoices();
+            let englishVoice = voices.find(v => v.lang === 'en-US' || v.lang === 'en-GB') || voices[0];
+            if (englishVoice) utterance.voice = englishVoice;
+            
+            utterance.lang = 'en-US';
+            utterance.rate = 1.0;
+            window.speechSynthesis.speak(utterance);
+        }
+    </script>
+</body>
+</html>
