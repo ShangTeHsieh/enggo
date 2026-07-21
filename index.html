@@ -37,11 +37,14 @@
             appleIcon.href = appIconUrl;
             document.head.appendChild(appleIcon);
 
+            // 🌟 修正：抓取乾淨的根目錄網址，避免 PWA 啟動時夾帶舊參數
+            const cleanUrl = window.location.origin + window.location.pathname;
+
             // 3. 動態產生 manifest.json (Android & 現代瀏覽器專用)
             const manifest = {
                 "name": appName,
                 "short_name": appName,
-                "start_url": window.location.href, // 綁定您當前的 GAS 網址
+                "start_url": cleanUrl,             // 替換原先的 window.location.href
                 "display": "standalone",           // 強制全螢幕，隱藏瀏覽器網址列
                 "background_color": "#ecf0f1",
                 "theme_color": themeColor,
@@ -56,7 +59,7 @@
             // 利用 Blob 將 JSON 轉為瀏覽器可讀取的虛擬檔案網址
             const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
             const manifestUrl = URL.createObjectURL(manifestBlob);
-            
+
             let manifestLink = document.createElement('link');
             manifestLink.rel = 'manifest';
             manifestLink.href = manifestUrl;
@@ -274,26 +277,33 @@
             padding: 0;
             margin: 0;
         }
+
         .achievement-list li {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 8px 5px; /* 🌟 縮小上下內邊距，減少高度佔用 */
+            padding: 8px 5px;
+            /* 🌟 縮小上下內邊距，減少高度佔用 */
             border-bottom: 1px dashed #ecf0f1;
-            font-size: 0.95rem; /* 🌟 略微縮小字體 */
+            font-size: 0.95rem;
+            /* 🌟 略微縮小字體 */
         }
+
         .achievement-list li:last-child {
             border-bottom: none;
         }
+
         .ach-label {
             color: #34495e;
             font-weight: 500;
         }
+
         .ach-value {
             font-weight: bold;
             color: #2c3e50;
             background: #f8f9fa;
-            padding: 2px 10px; /* 縮小數值區塊 */
+            padding: 2px 10px;
+            /* 縮小數值區塊 */
             border-radius: 10px;
         }
 
@@ -335,12 +345,13 @@
                 </select>
             </div>
             <div style="width: 100%; text-align: right; padding-top: 5px; border-top: 1px dashed #ecf0f1;">
-                <a href="#" onclick="openApplyModal()" style="font-size: 0.95rem; color: #3498db; text-decoration: none; font-weight: bold; padding: 5px;">
+                <a href="javascript:void(0)" onclick="openApplyModal()"
+                    style="font-size: 0.95rem; color: #3498db; text-decoration: none; font-weight: bold; padding: 5px;">
                     ✨ 申請專屬帳號
                 </a>
             </div>
         </div>
-        
+
 
         <!-- 🌟 新增：全域數據載入提示 -->
         <div id="global-loading">🔄 正在同步全域記憶數據...</div>
@@ -349,15 +360,20 @@
         <!-- 🌟 記憶成就儀表板 (直列式) -->
         <div class="dashboard-card" id="global-dashboard" style="display: none;">
             <h2>📊 全域記憶成就 (共 <span id="total-cards-count">0</span> 題)</h2>
-            
+
             <ul class="achievement-list">
                 <li><span class="ach-label">🌱 破冰啟航 (0-1天)</span> <span class="ach-value" id="lvl0-text">0 題</span></li>
                 <li><span class="ach-label">🔥 乘風破浪 (2-6天)</span> <span class="ach-value" id="lvl1-text">0 題</span></li>
-                <li><span class="ach-label">⚔️ 穩紮穩打 (7-13天)</span> <span class="ach-value" id="lvl2-text">0 題</span></li>
-                <li><span class="ach-label">🛡️ 游刃有餘 (14-27天)</span> <span class="ach-value" id="lvl3-text">0 題</span></li>
-                <li><span class="ach-label">👑 卓越精通 (28-55天)</span> <span class="ach-value" id="lvl4-text">0 題</span></li>
-                <li><span class="ach-label">🏅 爐火純青 (56-111天)</span> <span class="ach-value" id="lvl5-text">0 題</span></li>
-                <li><span class="ach-label">💎 傳奇殿堂 (112天+)</span> <span class="ach-value" id="lvl6-text">0 題</span></li>
+                <li><span class="ach-label">⚔️ 穩紮穩打 (7-13天)</span> <span class="ach-value" id="lvl2-text">0 題</span>
+                </li>
+                <li><span class="ach-label">🛡️ 游刃有餘 (14-27天)</span> <span class="ach-value" id="lvl3-text">0 題</span>
+                </li>
+                <li><span class="ach-label">👑 卓越精通 (28-55天)</span> <span class="ach-value" id="lvl4-text">0 題</span>
+                </li>
+                <li><span class="ach-label">🏅 爐火純青 (56-111天)</span> <span class="ach-value" id="lvl5-text">0 題</span>
+                </li>
+                <li><span class="ach-label">💎 傳奇殿堂 (112天+)</span> <span class="ach-value" id="lvl6-text">0 題</span>
+                </li>
             </ul>
         </div>
 
@@ -459,7 +475,8 @@
 
             <!-- 🌟 大魔王戰情中心入口 -->
             <div style="margin-top: 20px; text-align: center;">
-                <button onclick="enterBossHub()" style="background: linear-gradient(135deg, #e74c3c, #c0392b); color: white; border: none; padding: 15px 30px; border-radius: 12px; font-weight: bold; font-size: 1.2rem; cursor: pointer; box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4); width: 100%; max-width: 400px; transition: transform 0.2s;">
+                <button onclick="enterBossHub()"
+                    style="background: linear-gradient(135deg, #e74c3c, #c0392b); color: white; border: none; padding: 15px 30px; border-radius: 12px; font-weight: bold; font-size: 1.2rem; cursor: pointer; box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4); width: 100%; max-width: 400px; transition: transform 0.2s;">
                     ⚔️ 進入模擬考戰情中心
                 </button>
             </div>
@@ -475,7 +492,8 @@
             </script>
 
             <div style="margin-top: 15px; text-align: center;">
-                <button onclick="window.location.href='roleplay.html'" style="background: #3498db; color: white; border: none; padding: 12px 25px; border-radius: 8px; font-weight: bold; font-size: 1.1rem; cursor: pointer; box-shadow: 0 4px 10px rgba(52, 152, 219, 0.3); width: 100%; max-width: 400px; transition: transform 0.2s;">
+                <button onclick="window.location.href='roleplay.html'"
+                    style="background: #3498db; color: white; border: none; padding: 12px 25px; border-radius: 8px; font-weight: bold; font-size: 1.1rem; cursor: pointer; box-shadow: 0 4px 10px rgba(52, 152, 219, 0.3); width: 100%; max-width: 400px; transition: transform 0.2s;">
                     🗣️ 進入 AI 口說實戰對練
                 </button>
             </div>
@@ -487,14 +505,14 @@
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbynSXDVVI2Y7N5CCKEOwsWiEF3PM5Ib97D4VC_71VeqSoaMrx0-TpY6gzwkBz_m8NMddA/exec";
         const API_TOKEN = "derek_srs_2026";
-        
+
         let systemMembers = {}; // 全域配置檔暫存區
         let previousUser = "Guest"; // 🌟 新增：紀錄上一次成功驗證/選取的安全帳號
 
         // 🌟 新增：全域中央驗證器 (Login Wall)
         function authenticateUser(user) {
             if (user === 'Guest') return true;
-            
+
             // 檢查當前 Session 是否已經驗證過
             let isAuthed = sessionStorage.getItem(`auth_${user}`);
             if (isAuthed === 'true') return true;
@@ -512,32 +530,47 @@
 
         // 🌟 1. XP 與等級計算引擎
         function getLevelInfo(totalXP) {
-            let level = 1, nextLevelXP = 100;
+            let level = 1;
+            let currentLevelBaseXP = 0; // 紀錄當前等級的起始門檻
+            let nextLevelXP = 100;
+
             for (let i = 1; i <= 100; i++) {
                 let reqXP = Math.floor(100 * Math.pow(i, 1.8));
                 if (totalXP >= reqXP) {
                     level = i + 1; // 🐛 修正：突破門檻後，要晉升到下一級 (i + 1)
-                } else { 
-                    nextLevelXP = reqXP; 
-                    break; 
+                    currentLevelBaseXP = reqXP; // 突破門檻，更新底線
+                } else {
+                    nextLevelXP = reqXP;
+                    break;
                 }
             }
             if (level >= 100) { level = 100; nextLevelXP = "MAX"; }
+
+            // 計算「當前等級內」的相對進度百分比
+            let progressPercent = 100;
+            if (nextLevelXP !== "MAX") {
+                let xpEarnedInLevel = totalXP - currentLevelBaseXP;
+                let xpRequiredForNext = nextLevelXP - currentLevelBaseXP;
+                progressPercent = Math.floor((xpEarnedInLevel / xpRequiredForNext) * 100);
+            }
+
             return {
-                level: level, currentXP: totalXP, nextLevelXP: nextLevelXP,
-                progressPercent: nextLevelXP === "MAX" ? 100 : Math.floor((totalXP / nextLevelXP) * 100)
+                level: level,
+                currentXP: totalXP,
+                nextLevelXP: nextLevelXP,
+                progressPercent: progressPercent
             };
         }
 
         // 🌟 20 大境界升級引擎
         function getTitleBadge(level) {
             const titles = [
-                "🌱 語言初心者", "🚀 溝通探索者", "💼 職場實戰家", "🗣️ 流利演說家", "⚔️ 雙語挑戰者", 
+                "🌱 語言初心者", "🚀 溝通探索者", "💼 職場實戰家", "🗣️ 流利演說家", "⚔️ 雙語挑戰者",
                 "🛡️ 國際談判官", "🎖️ 英語菁英", "💎 語言宗師", "🌌 史詩領航員", "👑 語言之神",
                 "🌀 時空旅人", "⚡ 閃電俠", "🔥 熾熱之心", "🌊 湛藍海洋", "🌪️ 風暴之眼",
                 "🏔️ 頂峰之上", "🌌 銀河守護", "⏳ 永恆智者", "🔮 預言者", "🏛️ 傳說締造者"
             ];
-            
+
             // 計算階級 (每 5 等一階)
             let tierIndex = Math.floor((level - 1) / 5);
             let suffix = "";
@@ -550,11 +583,11 @@
             } else {
                 displayName = titles[tierIndex];
             }
-            
+
             // 計算星等 (1-5 循環)
             let starCount = ((level - 1) % 5) + 1;
             let stars = "★".repeat(starCount) + "☆".repeat(5 - starCount);
-            
+
             return {
                 titleName: displayName,
                 starsString: `<span style="color: #f1c40f; letter-spacing: 2px;">${stars}</span>`,
@@ -593,12 +626,12 @@
                 }
 
                 // 🌟 登入防護：當使用者「準備切換」下拉選單時，記錄前一個安全狀態
-                userSelect.addEventListener('focus', function() {
-                    previousUser = this.value; 
+                userSelect.addEventListener('focus', function () {
+                    previousUser = this.value;
                 });
 
                 // 🌟 登入牆：當使用者「選擇其他帳號」時進行密碼攔截
-                userSelect.addEventListener('change', function() {
+                userSelect.addEventListener('change', function () {
                     let targetUser = this.value;
                     if (targetUser !== 'Guest') {
                         let success = authenticateUser(targetUser);
@@ -623,19 +656,19 @@
                 console.error("Config Fetch Error:", error);
             }
         });
-        
+
         // 🌟 2. 動態建立下拉選單
         function buildUserSelector() {
             const userSelect = document.getElementById('currentUser');
             userSelect.innerHTML = ""; // 清空舊選項
-            
+
             for (let uid in systemMembers) {
                 let opt = document.createElement('option');
                 opt.value = uid;
                 opt.innerText = uid;
                 userSelect.appendChild(opt);
             }
-            
+
             let guestOpt = document.createElement('option');
             guestOpt.value = "Guest";
             guestOpt.innerText = "訪客模式 (不記錄)";
@@ -689,13 +722,22 @@
                                     <!-- 🌟 不顯眼的資訊提示圖示 -->
                                     <span title="${badge.tierInfo}" style="cursor: help; color: rgba(255,255,255,0.6); font-size: 0.8rem; border: 1px solid rgba(255,255,255,0.3); border-radius: 50%; width: 16px; height: 16px; display: inline-flex; justify-content: center; align-items: center;">?</span>
                                 </div>
-                                <div style="font-size: 0.8rem; opacity: 0.9;">Lv. ${rpgData.level} | ${rpgData.currentXP}/${rpgData.nextLevelXP} XP</div>
                             </div>
                         </div>
                         
-                        <div style="width: 100%; background: rgba(0,0,0,0.3); height: 6px; border-radius: 3px; margin-top: 12px; overflow: hidden;">
-                            <div style="width: ${rpgData.progressPercent}%; background: #2ecc71; height: 100%; transition: width 1s;"></div>
+                        <!-- 🌟 替換原有的 Lv 資訊與進度條區塊開始 -->
+                        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 8px;">
+                            <div style="font-size: 0.85rem; opacity: 0.9;">
+                                Lv. ${rpgData.level} | ${rpgData.currentXP} / ${rpgData.nextLevelXP} XP
+                            </div>
+                            <div style="font-size: 1.1rem; font-weight: bold; color: #2ecc71; text-shadow: 0px 1px 2px rgba(0,0,0,0.5);">
+                                ${rpgData.progressPercent}%
+                            </div>
                         </div>
+                        <div style="width: 100%; background: rgba(0,0,0,0.3); height: 8px; border-radius: 4px; margin-top: 6px; overflow: hidden;">
+                            <div style="width: ${rpgData.progressPercent}%; background: linear-gradient(90deg, #2ecc71, #27ae60); height: 100%; transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);"></div>
+                        </div>
+                        <!-- 🌟 替換原有的 Lv 資訊與進度條區塊結束 -->
 
                         <!-- 整合後的快速設定按鈕 -->
                         <div style="display: flex; gap: 8px; margin-top: 12px;">
@@ -727,7 +769,7 @@
 
             try {
                 let fetchUser = (user === 'Guest') ? 'Derek' : user;
-                
+
                 const [toeicRes, speakingRes] = await Promise.all([
                     fetch(`${API_URL}?action=getData&app=toeic&user=${fetchUser}&token=${API_TOKEN}`),
                     fetch(`${API_URL}?action=getData&app=speaking&user=${fetchUser}&token=${API_TOKEN}`)
@@ -735,7 +777,7 @@
 
                 const toeicData = await toeicRes.json();
                 const speakingData = await speakingRes.json();
-                
+
                 let allCards = [...(toeicData.cards || []), ...(speakingData.cards || [])];
 
                 let todayStr = getLocalDateString();
@@ -764,7 +806,7 @@
                         let conf = systemMembers[user] || {};
                         let goalKey = (part === 'speaking') ? 'Goal_Speaking' : `Goal_${part}`;
                         let dailyGoalCount = conf[goalKey] || 10;
-                        
+
                         // 計算該單元每日總目標 XP
                         let baseXP = 15;
                         if (part === 'speaking') baseXP = 20;
@@ -772,19 +814,27 @@
                         else if (['Part3', 'Part4'].includes(part)) baseXP = 80;
                         else if (part === 'Part6') baseXP = 90;
                         else if (part === 'Part7') baseXP = 120;
-                        
+
                         let targetXP = dailyGoalCount * baseXP;
                         let earnedXP = getTodayXP(user, part); // 呼叫先前寫的 LocalStorage 讀取 (請記得一併改名為 getTodayXP)
-                        
+
                         // 計算百分比 (最高100%)
                         let percent = Math.min(100, Math.floor((earnedXP / targetXP) * 100)) || 0;
-                        
+
                         let barColor = percent >= 100 ? "#2ecc71" : "#3498db"; // 達標變綠色
-                        
+
+                        // 🌟 增量更新：將待辦邏輯改為「當日尚缺題數」
+                        let completedCount = Math.floor(earnedXP / baseXP); // 反推今日已做幾題
+                        let remainingDailyCount = Math.max(0, dailyGoalCount - completedCount); // 扣除後得今日待辦，最低為0
+
+                        let dueCountText = remainingDailyCount > 0
+                            ? `<span style="color: #e74c3c; margin-right: 8px;">🔥 今日待辦 ${remainingDailyCount} 題</span>`
+                            : `<span style="color: #2ecc71; margin-right: 8px;">🎉 今日清空</span>`;
+
                         let html = `
                             <div style="text-align: right; margin-top: 5px;">
-                                <div style="font-size: 0.8rem; font-weight: bold; color: #7f8c8d; margin-bottom: 3px;">
-                                    ${percent >= 100 ? '✅ 達標' : '⚡ XP'} ${earnedXP} / ${targetXP}
+                                <div style="font-size: 0.8rem; font-weight: bold; color: #7f8c8d; margin-bottom: 3px; display: flex; justify-content: flex-end; align-items: center;">
+                                    ${dueCountText} | ${percent >= 100 ? '✅ 達標' : '⚡ XP'} ${earnedXP} / ${targetXP}
                                 </div>
                                 <div style="width: 100px; background: #ecf0f1; height: 6px; border-radius: 3px; overflow: hidden; display: inline-block;">
                                     <div style="width: ${percent}%; background: ${barColor}; height: 100%; transition: width 0.5s;"></div>
@@ -824,7 +874,7 @@
             let levels = [0, 0, 0, 0, 0, 0, 0];
 
             cardsArray.forEach(card => {
-                if (parseInt(card.isStuck) === 1) return; 
+                if (parseInt(card.isStuck) === 1) return;
                 let days = parseFloat(card.interval) || 0;
                 if (days <= 1) levels[0]++;
                 else if (days <= 6) levels[1]++;
@@ -853,7 +903,7 @@
                         sessionStorage.setItem(`auth_${user}`, 'true');
                     } else {
                         alert("❌ 密碼錯誤！請重新輸入。");
-                        return; 
+                        return;
                     }
                 }
             }
@@ -911,7 +961,7 @@
                     // 公式：(Ease - 1.3) / (3.0 - 1.3) * 100，最低 0，最高 100
                     let score = Math.floor(((avgEase - 1.3) / 1.7) * 100);
                     score = Math.max(0, Math.min(100, score)); // 限制在 0-100 之間
-                    
+
                     // 若新題基準為 2.5，大約會落在 70 分左右
                     dataScores.push(score);
                 }
@@ -919,78 +969,84 @@
 
             // 4. 繪製或更新 Chart.js 雷達圖
             if (userRadarChart) {
-                userRadarChart.data.datasets[0].data = dataScores;
-                userRadarChart.update();
-            } else {
-                userRadarChart = new Chart(ctx, {
-                    type: 'radar',
-                    data: {
-                        labels: ['P1 圖片', 'P2 應答', 'P3 對話', 'P4 獨白', 'P5 文法', 'P6 克漏字', 'P7 閱讀'],
-                        datasets: [{
-                            label: '熟練度戰力 (Max: 100)',
-                            data: dataScores,
-                            backgroundColor: 'rgba(52, 152, 219, 0.4)', // 科技藍半透明
-                            borderColor: 'rgba(52, 152, 219, 1)',
-                            pointBackgroundColor: '#f1c40f',
-                            pointBorderColor: '#fff',
-                            pointHoverBackgroundColor: '#fff',
-                            pointHoverBorderColor: '#f1c40f',
-                            borderWidth: 2
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            r: {
-                                // 🌟 將原本的白色線條改為深灰色半透明，找回消失的網格
-                                angleLines: { color: 'rgba(0, 0, 0, 0.1)' }, 
-                                grid: { 
-                                    color: 'rgba(0, 0, 0, 0.1)',
-                                    circular: false // 強制顯示為正多邊形
-                                },
-                                pointLabels: {
-                                    color: '#34495e',
-                                    font: { size: 10, family: 'sans-serif', weight: 'bold' }
-                                },
-                                ticks: {
-                                    display: false,
-                                    min: 0,
-                                    max: 100,
-                                    stepSize: 20 // 顯示 5 圈等距多邊形，建立明確的百分比基準
-                                }
-                            }
-                        },
-                        plugins: {
-                            legend: { display: false } // 隱藏圖例以節省空間
-                        }
-                    }
-                });
+                userRadarChart.destroy(); // 🌟 修正：因 Canvas 被重新生成，必須強制銷毀舊實例
             }
+            userRadarChart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['P1 圖片', 'P2 應答', 'P3 對話', 'P4 獨白', 'P5 文法', 'P6 克漏字', 'P7 閱讀'],
+                    datasets: [{
+                        label: '熟練度戰力 (Max: 100)',
+                        data: dataScores,
+                        backgroundColor: 'rgba(52, 152, 219, 0.4)', // 科技藍半透明
+                        borderColor: 'rgba(52, 152, 219, 1)',
+                        pointBackgroundColor: '#f1c40f',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: '#f1c40f',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            // 🌟 將原本的白色線條改為深灰色半透明，找回消失的網格
+                            angleLines: { color: 'rgba(0, 0, 0, 0.1)' },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)',
+                                circular: false // 強制顯示為正多邊形
+                            },
+                            pointLabels: {
+                                color: '#34495e',
+                                font: { size: 10, family: 'sans-serif', weight: 'bold' }
+                            },
+                            ticks: {
+                                display: false,
+                                min: 0,
+                                max: 100,
+                                stepSize: 20 // 顯示 5 圈等距多邊形，建立明確的百分比基準
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false } // 隱藏圖例以節省空間
+                    }
+                }
+            });
         }
-        
+
     </script>
 
     <!-- 🌟 會員申請面板 (預設隱藏) -->
-    <div id="apply-modal" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center;">
+    <div id="apply-modal"
+        style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center;">
         <div style="background: white; width: 90%; max-width: 400px; border-radius: 15px; padding: 25px;">
             <h2 style="margin-top: 0; color: #2c3e50;">📝 申請專屬帳號</h2>
             <p style="font-size: 0.85rem; color: #7f8c8d;">本系統為邀請制，申請後需經管理員審核。</p>
-            
-            <input type="text" id="apply-id" placeholder="期望的登入 ID (如: Alan)" style="width: 100%; padding: 12px; margin-top: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box;">
-            
-            <input type="email" id="apply-email" placeholder="您的聯絡 Email (用於接收密碼)" style="width: 100%; padding: 12px; margin-top: 15px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box;">
-            
-            <input type="text" id="apply-reason" placeholder="申請理由 / 您是誰？" style="width: 100%; padding: 12px; margin-top: 15px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box;">
 
-            <div style="background: #fdfefe; padding: 12px; border-radius: 8px; margin-top: 15px; border-left: 4px solid #e74c3c;">
+            <input type="text" id="apply-id" placeholder="期望的登入 ID (如: Alan)"
+                style="width: 100%; padding: 12px; margin-top: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box;">
+
+            <input type="email" id="apply-email" placeholder="您的聯絡 Email (用於接收密碼)"
+                style="width: 100%; padding: 12px; margin-top: 15px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box;">
+
+            <input type="text" id="apply-reason" placeholder="申請理由 / 您是誰？"
+                style="width: 100%; padding: 12px; margin-top: 15px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box;">
+
+            <div
+                style="background: #fdfefe; padding: 12px; border-radius: 8px; margin-top: 15px; border-left: 4px solid #e74c3c;">
                 <label style="font-size: 0.85rem; font-weight: bold; color: #c0392b;">防機器人通關密語：高雄機場的 IATA 代碼是？</label>
-                <input type="text" id="apply-passcode" placeholder="請輸入 3 個英文字母" style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; text-transform: uppercase;">
+                <input type="text" id="apply-passcode" placeholder="請輸入 3 個英文字母"
+                    style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; text-transform: uppercase;">
             </div>
 
             <div style="display: flex; gap: 10px; margin-top: 20px;">
-                <button onclick="document.getElementById('apply-modal').style.display='none'" style="flex: 1; padding: 12px; background: #ecf0f1; border: none; border-radius: 8px; font-weight:bold; cursor: pointer;">取消</button>
-                <button onclick="submitApplication(this)" style="flex: 1; padding: 12px; background: #3498db; color: white; border: none; border-radius: 8px; font-weight:bold; cursor: pointer;">送出申請</button>
+                <button onclick="document.getElementById('apply-modal').style.display='none'"
+                    style="flex: 1; padding: 12px; background: #ecf0f1; border: none; border-radius: 8px; font-weight:bold; cursor: pointer;">取消</button>
+                <button onclick="submitApplication(this)"
+                    style="flex: 1; padding: 12px; background: #3498db; color: white; border: none; border-radius: 8px; font-weight:bold; cursor: pointer;">送出申請</button>
             </div>
         </div>
     </div>
@@ -1007,7 +1063,7 @@
             let reason = document.getElementById('apply-reason').value;
             let passcode = document.getElementById('apply-passcode').value;
 
-            if(!id || !email || !passcode) {
+            if (!id || !email || !passcode) {
                 alert("請填寫 ID、Email 與通關密語！"); return;
             }
 
@@ -1030,14 +1086,14 @@
                     headers: { 'Content-Type': 'text/plain' }
                 });
                 let result = await res.json();
-                
+
                 if (result.status === "success") {
                     alert("✅ 申請已送出！請靜待 Derek 審核，通過後將會發送密碼至您的 Email。");
                     document.getElementById('apply-modal').style.display = 'none';
                 } else {
                     alert("❌ 錯誤：" + result.message);
                 }
-            } catch(e) {
+            } catch (e) {
                 alert("網路異常，請稍後再試。");
             }
             btn.innerText = "送出申請";
@@ -1046,69 +1102,93 @@
     </script>
 
     <!-- 🌟 個人化設定中心面板 -->
-    <div id="settings-modal" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box;">
-        <div style="background: white; width: 100%; max-width: 500px; max-height: 90vh; border-radius: 15px; padding: 25px; overflow-y: auto;">
-            <h2 style="margin-top: 0; color: #2c3e50; border-bottom: 2px solid #ecf0f1; padding-bottom: 10px;">⚙️ 個人化設定</h2>
-            
+    <div id="settings-modal"
+        style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box;">
+        <div
+            style="background: white; width: 100%; max-width: 500px; max-height: 90vh; border-radius: 15px; padding: 25px; overflow-y: auto;">
+            <h2 style="margin-top: 0; color: #2c3e50; border-bottom: 2px solid #ecf0f1; padding-bottom: 10px;">⚙️ 個人化設定
+            </h2>
+
             <!-- 區塊 1：帳號安全 -->
-            <div style="background: #fdfefe; border: 1px solid #ecf0f1; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <div
+                style="background: #fdfefe; border: 1px solid #ecf0f1; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
                 <h3 style="margin: 0 0 10px 0; font-size: 1rem; color: #34495e;">🔑 修改密碼 (選填)</h3>
-                <input type="password" id="set-pwd-old" placeholder="目前密碼 (若需修改密碼必填)" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box;">
-                <input type="password" id="set-pwd-new" placeholder="新密碼" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box;">
+                <input type="password" id="set-pwd-old" placeholder="目前密碼 (若需修改密碼必填)"
+                    style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box;">
+                <input type="password" id="set-pwd-new" placeholder="新密碼"
+                    style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box;">
             </div>
 
             <!-- 區塊 2：多益考期與目標 -->
-            <div style="background: #fdfefe; border: 1px solid #ecf0f1; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <div
+                style="background: #fdfefe; border: 1px solid #ecf0f1; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
                 <h3 style="margin: 0 0 10px 0; font-size: 1rem; color: #34495e;">🎯 目標考期設定</h3>
-                
+
                 <!-- 近期官方考期參考表 -->
-                <div style="background: #ecf0f1; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 0.85rem;">
+                <div
+                    style="background: #ecf0f1; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 0.85rem;">
                     <strong>📅 近期官方測驗參考 (2026下半年)</strong>
                     <ul style="margin: 5px 0; padding-left: 20px; color: #7f8c8d;">
                         <li>8/23 (日) - 報名至 7/28</li>
                         <li>9/27 (日) - 報名至 9/01</li>
                         <li>10/25 (日) - 報名至 9/29</li>
                     </ul>
-                    <a href="https://www.toeic.com.tw/" target="_blank" style="color: #3498db; text-decoration: none;">👉 前往多益官網報名</a>
+                    <a href="https://www.toeic.com.tw/" target="_blank"
+                        style="color: #3498db; text-decoration: none;">👉 前往多益官網報名</a>
                 </div>
 
                 <label style="font-size: 0.9rem; font-weight: bold; color: #7f8c8d;">您的專屬目標日：</label>
-                <input type="date" id="set-target-date" style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-family: inherit;">
+                <input type="date" id="set-target-date"
+                    style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-family: inherit;">
             </div>
 
             <!-- 區塊 3：每日配額設定 -->
-            <div style="background: #fdfefe; border: 1px solid #ecf0f1; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <div
+                style="background: #fdfefe; border: 1px solid #ecf0f1; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
                 <h3 style="margin: 0 0 10px 0; font-size: 1rem; color: #34495e;">📈 每日題數配額</h3>
-                
+
                 <div style="margin-bottom: 15px;">
                     <label style="display: flex; align-items: center; cursor: pointer;">
-                        <input type="checkbox" id="set-ai-mode" onchange="toggleManualGoals()" style="width: 18px; height: 18px; margin-right: 10px;">
+                        <input type="checkbox" id="set-ai-mode" onchange="toggleManualGoals()"
+                            style="width: 18px; height: 18px; margin-right: 10px;">
                         <span style="font-weight: bold; color: #e67e22;">🤖 啟用 AI 智慧大腦調配目標</span>
                     </label>
-                    <p style="font-size: 0.8rem; color: #7f8c8d; margin: 5px 0 0 28px;">開啟後，系統將依據您的答題熟練度與大腦能量，每天半夜自動為您調配隔日的題型比例。</p>
+                    <p style="font-size: 0.8rem; color: #7f8c8d; margin: 5px 0 0 28px;">
+                        開啟後，系統將依據您的答題熟練度與大腦能量，每天半夜自動為您調配隔日的題型比例。</p>
                 </div>
 
                 <div id="manual-goals-area" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <div><label style="font-size: 0.8rem;">🗣️ 口說題數</label><input type="number" id="goal-spk" min="0" style="width: 100%; padding: 8px; box-sizing: border-box;"></div>
-                    <div><label style="font-size: 0.8rem;">P1 圖片</label><input type="number" id="goal-p1" min="0" style="width: 100%; padding: 8px; box-sizing: border-box;"></div>
-                    <div><label style="font-size: 0.8rem;">P2 應答</label><input type="number" id="goal-p2" min="0" style="width: 100%; padding: 8px; box-sizing: border-box;"></div>
-                    <div><label style="font-size: 0.8rem;">P3 對話(題組)</label><input type="number" id="goal-p3" min="0" style="width: 100%; padding: 8px; box-sizing: border-box;"></div>
-                    <div><label style="font-size: 0.8rem;">P4 獨白(題組)</label><input type="number" id="goal-p4" min="0" style="width: 100%; padding: 8px; box-sizing: border-box;"></div>
-                    <div><label style="font-size: 0.8rem;">P5 文法</label><input type="number" id="goal-p5" min="0" style="width: 100%; padding: 8px; box-sizing: border-box;"></div>
-                    <div><label style="font-size: 0.8rem;">P6 克漏(題組)</label><input type="number" id="goal-p6" min="0" style="width: 100%; padding: 8px; box-sizing: border-box;"></div>
-                    <div><label style="font-size: 0.8rem;">P7 閱讀(題組)</label><input type="number" id="goal-p7" min="0" style="width: 100%; padding: 8px; box-sizing: border-box;"></div>
+                    <div><label style="font-size: 0.8rem;">🗣️ 口說題數</label><input type="number" id="goal-spk" min="0"
+                            style="width: 100%; padding: 8px; box-sizing: border-box;"></div>
+                    <div><label style="font-size: 0.8rem;">P1 圖片</label><input type="number" id="goal-p1" min="0"
+                            style="width: 100%; padding: 8px; box-sizing: border-box;"></div>
+                    <div><label style="font-size: 0.8rem;">P2 應答</label><input type="number" id="goal-p2" min="0"
+                            style="width: 100%; padding: 8px; box-sizing: border-box;"></div>
+                    <div><label style="font-size: 0.8rem;">P3 對話(題組)</label><input type="number" id="goal-p3" min="0"
+                            style="width: 100%; padding: 8px; box-sizing: border-box;"></div>
+                    <div><label style="font-size: 0.8rem;">P4 獨白(題組)</label><input type="number" id="goal-p4" min="0"
+                            style="width: 100%; padding: 8px; box-sizing: border-box;"></div>
+                    <div><label style="font-size: 0.8rem;">P5 文法</label><input type="number" id="goal-p5" min="0"
+                            style="width: 100%; padding: 8px; box-sizing: border-box;"></div>
+                    <div><label style="font-size: 0.8rem;">P6 克漏(題組)</label><input type="number" id="goal-p6" min="0"
+                            style="width: 100%; padding: 8px; box-sizing: border-box;"></div>
+                    <div><label style="font-size: 0.8rem;">P7 閱讀(題組)</label><input type="number" id="goal-p7" min="0"
+                            style="width: 100%; padding: 8px; box-sizing: border-box;"></div>
                 </div>
             </div>
 
             <div style="display: flex; gap: 10px;">
-                <button onclick="document.getElementById('settings-modal').style.display='none'" style="flex: 1; padding: 12px; background: #ecf0f1; border: none; border-radius: 8px; font-weight:bold; cursor: pointer;">取消</button>
-                <button onclick="submitSettings(this)" style="flex: 2; padding: 12px; background: #2ecc71; color: white; border: none; border-radius: 8px; font-weight:bold; cursor: pointer;">💾 儲存設定</button>
+                <button onclick="document.getElementById('settings-modal').style.display='none'"
+                    style="flex: 1; padding: 12px; background: #ecf0f1; border: none; border-radius: 8px; font-weight:bold; cursor: pointer;">取消</button>
+                <button onclick="submitSettings(this)"
+                    style="flex: 2; padding: 12px; background: #2ecc71; color: white; border: none; border-radius: 8px; font-weight:bold; cursor: pointer;">💾
+                    儲存設定</button>
             </div>
         </div>
     </div>
 
     <script>
-        
+
 
         // 🌟 開啟個人化設定面板 (補回遺失的函數)
         function openSettingsModal() {
@@ -1116,16 +1196,16 @@
             if (activeUser === 'Guest') {
                 alert("訪客模式無法設定目標。"); return;
             }
-            
+
             // 🔒 安全守衛：開啟設定前，雙重確認是否有當前 Session 驗證
             let success = authenticateUser(activeUser);
             if (!success) return;
-            
+
             // 讀取當前使用者的歷史設定值，填入表單中
             let conf = systemMembers[activeUser] || {};
             document.getElementById('set-target-date').value = conf.Target_Exam_Date || "";
             document.getElementById('set-ai-mode').checked = (conf.AI_Mode === true || conf.AI_Mode === "true");
-            
+
             // 填入各項目標
             document.getElementById('goal-spk').value = conf.Goal_Speaking || 10;
             document.getElementById('goal-p1').value = conf.Goal_Part1 || 10;
@@ -1135,13 +1215,13 @@
             document.getElementById('goal-p5').value = conf.Goal_Part5 || 10;
             document.getElementById('goal-p6').value = conf.Goal_Part6 || 10;
             document.getElementById('goal-p7').value = conf.Goal_Part7 || 10;
-            
+
             toggleManualGoals(); // 依據 AI 模式決定是否鎖定輸入框
-            
+
             // 清空修改密碼欄位
-            document.getElementById('set-pwd-old').value = ""; 
+            document.getElementById('set-pwd-old').value = "";
             document.getElementById('set-pwd-new').value = "";
-            
+
             document.getElementById('settings-modal').style.display = 'flex';
         }
 
@@ -1195,12 +1275,12 @@
                     headers: { 'Content-Type': 'text/plain' }
                 });
                 let result = await res.json();
-                
+
                 if (result.status === "success") {
                     alert("✅ 設定已成功儲存！");
                     document.getElementById('settings-modal').style.display = 'none';
                     // 重新整理網頁以載入最新設定與進度條
-                    window.location.reload(); 
+                    window.location.reload();
                 } else {
                     alert("❌ 儲存失敗：" + result.message);
                 }
@@ -1213,4 +1293,5 @@
     </script>
 
 </body>
+
 </html>

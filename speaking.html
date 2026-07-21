@@ -229,6 +229,7 @@
             margin: 0;
             text-align: left;
         }
+
         .achievement-list li {
             display: flex;
             justify-content: space-between;
@@ -237,13 +238,16 @@
             border-bottom: 1px dashed #ecf0f1;
             font-size: 1rem;
         }
+
         .achievement-list li:last-child {
             border-bottom: none;
         }
+
         .ach-label {
             color: #34495e;
             font-weight: 500;
         }
+
         .ach-value {
             font-weight: bold;
             color: #2c3e50;
@@ -251,7 +255,32 @@
             padding: 4px 10px;
             border-radius: 12px;
         }
-        
+
+        /* 🌟 新增：錄音分享按鈕與警示標籤樣式 */
+        .btn-share {
+            background: #8e44ad;
+            color: white;
+            width: 100%;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        .btn-share:hover {
+            background: #9b59b6;
+        }
+
+        .warning-tag {
+            font-size: 0.8rem;
+            color: white;
+            background: #e74c3c;
+            padding: 3px 8px;
+            border-radius: 10px;
+            display: inline-block;
+            margin-bottom: 10px;
+            margin-left: 5px;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(231, 76, 60, 0.3);
+        }
     </style>
 </head>
 
@@ -283,7 +312,6 @@
             </p>
             <button class="btn-start" id="start-btn" onclick="startReview()" style="display:none;">開始挑戰</button>
             <div id="home-xp-panel"></div>
-            <div id="home-xp-panel"></div>
             <div style="text-align: center; margin-top: 25px;">
                 <a href="#" onclick="logoutUser()"
                     style="color: #95a5a6; font-size: 0.85rem; text-decoration: underline;">切換帳號 / 登出</a>
@@ -301,7 +329,13 @@
                 <div onclick="reportError(event)"
                     style="position: absolute; top: 10px; right: 15px; font-size: 1.2rem; cursor: pointer; opacity: 0.15; transition: 0.3s;"
                     onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.15" title="報錯並隔離此題">⚠️</div>
-                <div id="card-tag" class="tag">標籤</div>
+                <!-- 🌟 替換：卡片上方的標籤區塊，加入熟練度警示 -->
+                <div
+                    style="display: flex; justify-content: center; align-items: center; gap: 5px; margin-bottom: 10px;">
+                    <div id="card-tag" class="tag" style="margin-bottom: 0;">標籤</div>
+                    <div id="card-warning" class="warning-tag" style="display: none; margin-bottom: 0;">⚠️ 熟練度低：建議重點練習
+                    </div>
+                </div>
                 <div id="card-scenario"
                     style="font-size: 0.95rem; color: #7f8c8d; font-weight: normal; margin-bottom: 12px; text-align: left; background: #f8f9fa; padding: 8px; border-radius: 6px; border-left: 4px solid #1976d2;">
                     載入中...</div>
@@ -317,6 +351,11 @@
 
             <button id="btn-reveal" class="btn-start" onclick="revealAnswer()"
                 style="display:none; background:#34495e; margin-bottom: 15px; width: 100%;">👁️ 已經聽懂了，翻面看英文解答</button>
+
+            <!-- 🌟 新增：獨立分享按鈕 (初始隱藏) -->
+            <button id="btn-share-current" class="btn-share btn-start" onclick="shareCurrentCard()">
+                🎙️ 覺得這句很棒？立即複製並分享此句
+            </button>
 
             <div class="btn-group" id="score-btns">
                 <button style="background:#f39c12;" onclick="scoreCard('repeat')">不熟<br>(重來)</button>
@@ -438,6 +477,11 @@
         window.onload = function () {
             document.getElementById("loading").style.display = "none";
 
+            // 🌟 增量更新：提早預熱系統語音引擎，強制瀏覽器背景載入語音清單
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.getVoices();
+            }
+
             // 1. 優先攔截：檢查是不是從「實戰大廳 (index.html)」傳遞過來的身分
             const urlParams = new URLSearchParams(window.location.search);
             const userParam = urlParams.get('user');
@@ -485,6 +529,9 @@
 
                 globalAllCards = data.cards || [];
 
+                // 🌟 增量更新：補上 statsData 的賦值，避免結算系統讀取到空物件
+                statsData = data.stats || {};
+
                 if (currentUser === 'Guest') {
                     globalAllCards.forEach(c => { c.interval = 0; c.easeFactor = 2.5; c.nextReviewDate = ""; });
                 }
@@ -518,7 +565,7 @@
                 document.getElementById("loading").innerText = "資料讀取失敗，請檢查網路。";
             }
         }
-        
+
         function logoutUser() {
             let confirmLogout = confirm("確定要登出並切換帳號嗎？");
             if (confirmLogout) {
@@ -536,7 +583,7 @@
 
             // 切出剩餘目標數量的卡片
             cardsData = allDueCards.slice(0, remainingGoal);
-            allDueCards = allDueCards.slice(remainingGoal); 
+            allDueCards = allDueCards.slice(remainingGoal);
             currentCardIndex = 0;
 
             let newCardsCount = cardsData.filter(c => !c.interval || c.interval == 0).length;
@@ -553,12 +600,17 @@
             if (cardsData.length > 0) {
                 document.getElementById("start-btn").style.display = "block";
             } else {
-                document.getElementById("home-screen").innerHTML = `
-                    <div style="text-align:center; padding: 20px;">
-                        <h3 style="color:#2ecc71;">✅ 今日達標！</h3>
-                        <p>您已完成本日 ${dailyCap} 句的口說配額，請好好休息或進入全域複習！🍻</p>
-                        <button onclick="startGlobalPractice()" style="background:#2980b9; color:white; padding:12px 20px; border:none; border-radius:8px; cursor:pointer; font-weight:bold; margin-top:15px;">進入全域練習</button>
-                    </div>`;
+                // 🛑 修正：不再使用 innerHTML 覆寫，改為優雅地重置數字與更改按鈕功能
+                document.getElementById("due-count").innerText = "0";
+                document.getElementById("new-count").innerText = "0";
+                document.getElementById("review-count").innerText = "0";
+
+                let startBtn = document.getElementById("start-btn");
+                startBtn.innerText = "✅ 今日達標！進入全域練習 🍻";
+                startBtn.style.background = "#2980b9";
+                startBtn.onclick = startGlobalPractice;
+                startBtn.style.display = "block";
+
                 renderXPDashboard("home-xp-panel", globalAllCards); // 保留儀表板
             }
         }
@@ -585,6 +637,14 @@
 
             document.getElementById("card-tag").innerText = statusIcon + (card.tag || "一般情境");
 
+            // 判斷是否顯示警告 (新題不警告，只有複習且 ease < 1.8 才警告)
+            let ease = parseFloat(card.easeFactor);
+            if (isNaN(ease)) ease = 2.5;
+            let warningEl = document.getElementById("card-warning");
+            if (warningEl) {
+                warningEl.style.display = (ease < 1.8 && !isNew) ? "inline-block" : "none";
+            }
+
             // 載入文字
             document.getElementById("card-scenario").innerText = "🎬 情境：" + card.scenario_tw;
             document.getElementById("card-chinese").innerHTML = "🗣️ 請看著中文試說：<br>" + card.context_tw;
@@ -594,6 +654,7 @@
             document.getElementById("card-chinese").style.display = "none";
             document.getElementById("card-english").style.display = "none";
             document.getElementById("btn-reveal").style.display = "none";
+            document.getElementById("btn-share-current").style.display = "none"; // 隱藏分享按鈕
             document.getElementById("score-btns").style.display = "none";
 
             document.getElementById("click-hint").innerText = "(點擊卡片顯示中文翻譯 📖)";
@@ -624,8 +685,38 @@
             document.getElementById("btn-reveal").style.display = "none";
             document.getElementById("card-english").style.display = "block";
             document.getElementById("score-btns").style.display = "flex";
+            document.getElementById("btn-share-current").style.display = "block"; // 顯示分享按鈕
             document.getElementById("click-hint").innerText = "(點擊卡片可再次聆聽 🔊)";
             cardState = 3;
+        }
+
+        // 🌟 3. 新增獨立函數：當下立即分享與過濾寫入
+        function shareCurrentCard() {
+            let card = cardsData[currentCardIndex];
+            let shareText = `🔥 每日口說打卡！\n\n這是我今天的精選句：\n[${card.tag || '一般情境'}]\n🎬 情境：${card.scenario_tw}\n🗣️ ${card.context_tw}\n👉 ${card.sentence_en}\n\n聽完我的語音，換你囉！`;
+
+            // 寫入 localStorage 防重複機制 (擴增至 20 句)
+            let recentShared = JSON.parse(localStorage.getItem('recentSharedIds') || '[]');
+            if (!recentShared.includes(card.Card_ID)) {
+                recentShared.push(card.Card_ID);
+                if (recentShared.length > 20) recentShared.shift();
+                localStorage.setItem('recentSharedIds', JSON.stringify(recentShared));
+            }
+
+            // 複製到剪貼簿 (雙重機制確保相容性)
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(shareText).then(() => {
+                    alert("✅ 複製成功！已自動加入防重複清單，請自行貼至 LINE 群組錄音。");
+                });
+            } else {
+                let textArea = document.createElement("textarea");
+                textArea.value = shareText;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand("copy");
+                document.body.removeChild(textArea);
+                alert("✅ 複製成功！已自動加入防重複清單，請自行貼至 LINE 群組錄音。");
+            }
         }
 
         // 獨立出播放聲音的功能 (🌟 加入強制英文語音鎖定)
@@ -691,17 +782,20 @@
                     method: 'POST',
                     body: JSON.stringify({
                         token: API_TOKEN,
-                        user: currentUser, 
+                        user: currentUser,
                         action: 'updateCard',
-                        Card_ID: card.Card_ID, 
+                        Card_ID: card.Card_ID,
                         rowNumber: card.rowNumber,
                         nextReviewDate: formattedDate,
                         interval: interval,
                         isStuck: isStuck,
                         easeFactor: ease,
-                        earnedXP: xpToEarn 
+                        earnedXP: xpToEarn
                     }),
                     headers: { 'Content-Type': 'text/plain' }
+                }).catch(e => {
+                    // 🌟 增量更新：加入網路錯誤捕捉，防止無聲崩潰卡死畫面
+                    console.error("進度上傳失敗 (可能處於離線環境):", e);
                 });
             }
 
@@ -783,28 +877,41 @@
                         freezeTokens: freezeTokens
                     }),
                     headers: { 'Content-Type': 'text/plain' }
+                }).catch(e => {
+                    // 🌟 增量更新：加入網路錯誤捕捉，防止無聲崩潰卡死畫面
+                    console.error("進度上傳失敗 (可能處於離線環境):", e);
                 });
 
                 statsData.lastLoginDate = todayStr;
                 statsData.streak = currentStreak;
                 statsData.freezeTokens = freezeTokens;
 
-                document.getElementById("streak-count").innerText = currentStreak;
-                document.getElementById("freeze-count").innerText = freezeTokens;
+                // 🛑 修正：加入元素存在判定，避免因為畫面上沒有這兩個標籤而導致程式崩潰卡死
+                let streakEl = document.getElementById("streak-count");
+                let freezeEl = document.getElementById("freeze-count");
+                if (streakEl) streakEl.innerText = currentStreak;
+                if (freezeEl) freezeEl.innerText = freezeTokens;
             }
 
             // 精選句挑選邏輯 (防重複)
             let recommendedSentence = null;
             if (sessionHistory && sessionHistory.length > 0) {
                 let recentShared = JSON.parse(localStorage.getItem('recentSharedIds') || '[]');
-                let availableCards = sessionHistory.filter(c => !recentShared.includes(c.id));
-                if (availableCards.length === 0) availableCards = [...sessionHistory];
+                // 修正 Bug：將 c.id 改為正確的 c.Card_ID
+                let availableCards = sessionHistory.filter(c => !recentShared.includes(c.Card_ID));
+
+                if (availableCards.length === 0) availableCards = [...sessionHistory]; // 若全部分享過，則不設限
+
+                // 挑出熟練度最低的作為結算推薦
                 availableCards.sort((a, b) => (parseFloat(a.easeFactor) || 2.5) - (parseFloat(b.easeFactor) || 2.5));
                 recommendedSentence = availableCards[0];
 
-                recentShared.push(recommendedSentence.id);
-                if (recentShared.length > 15) recentShared.shift();
-                localStorage.setItem('recentSharedIds', JSON.stringify(recentShared));
+                // 將結算畫面推薦的句子也補入清單
+                if (!recentShared.includes(recommendedSentence.Card_ID)) {
+                    recentShared.push(recommendedSentence.Card_ID);
+                    if (recentShared.length > 20) recentShared.shift();
+                    localStorage.setItem('recentSharedIds', JSON.stringify(recentShared));
+                }
             }
 
             let shareText = "";
@@ -902,7 +1009,8 @@
                 // 🌟 核心升級 2：全域練習也加入洗牌，確保每次進來挑戰順序都不同
                 shuffleArray(data.cards);
 
-                cardsData = data.cards;
+                // 🛑 修正：從洗牌後的總題庫中，精準截取前 5 題（若不足 5 題則全取）
+                cardsData = data.cards.slice(0, 5);
                 currentCardIndex = 0;
                 sessionHistory = [];
 
@@ -994,6 +1102,22 @@
                     card.hasUploaded = true;
                 }
 
+                // 🌟 新增：先送出清理該 Card_ID 進度的請求 (需後端 GAS 支援此 action)
+                fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        token: API_TOKEN,
+                        user: currentUser,
+                        action: 'clearProgress', // 請求清除資料庫
+                        app: 'speaking',
+                        Card_ID: card.Card_ID
+                    }),
+                    headers: { 'Content-Type': 'text/plain' }
+                }).catch(e => {
+                    // 🌟 增量更新：加入網路錯誤捕捉，防止無聲崩潰卡死畫面
+                    console.error("進度上傳失敗 (可能處於離線環境):", e);
+                });
+
                 fetch(API_URL, {
                     method: 'POST',
                     body: JSON.stringify({
@@ -1001,16 +1125,19 @@
                         user: currentUser,
                         action: 'updateCard',
                         app: 'speaking', // 標註為口說模組
-                        Card_ID: card.Card_ID, 
+                        Card_ID: card.Card_ID,
                         rowNumber: card.rowNumber,
                         nextReviewDate: card.nextReviewDate,
                         interval: 0,
                         isStuck: 1, // 隱藏
                         isError: 1, // 報錯紅燈
                         easeFactor: card.easeFactor,
-                        earnedXP: xpToEarn 
+                        earnedXP: xpToEarn
                     }),
                     headers: { 'Content-Type': 'text/plain' }
+                }).catch(e => {
+                    // 🌟 增量更新：加入網路錯誤捕捉，防止無聲崩潰卡死畫面
+                    console.error("進度上傳失敗 (可能處於離線環境):", e);
                 });
             }
             alert("✅ 已回報！系統將暫時隔離此題。");

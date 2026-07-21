@@ -1,106 +1,305 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 口說實戰對練</title>
     <style>
-        :root { --bg-color: #ecf0f1; --chat-bg: #fff; --user-msg: #3498db; --ai-msg: #ecf0f1; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; height: 100vh; box-sizing: border-box; }
-        #chat-container { width: 100%; max-width: 500px; flex: 1; background: var(--chat-bg); border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: flex; flex-direction: column; overflow: hidden; }
-        #header { background: #2c3e50; color: white; padding: 15px; text-align: center; font-weight: bold; font-size: 1.2rem; }
-        #messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
-        .msg { max-width: 80%; padding: 12px 16px; border-radius: 15px; line-height: 1.5; font-size: 1rem; animation: fadeIn 0.3s ease-in-out; }
-        .msg.user { background: var(--user-msg); color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
-        .msg.ai { background: var(--ai-msg); color: #2c3e50; align-self: flex-start; border-bottom-left-radius: 2px; }
-        #controls { padding: 20px; background: #fff; border-top: 1px solid #bdc3c7; text-align: center; }
-        #btn-mic { width: 80px; height: 80px; border-radius: 50%; background: #e74c3c; color: white; border: none; font-size: 2rem; cursor: pointer; box-shadow: 0 4px 10px rgba(231,76,60,0.4); transition: transform 0.1s, background 0.3s; display: flex; justify-content: center; align-items: center; margin: 0 auto; }
-        #btn-mic.recording { background: #c0392b; animation: pulse 1s infinite; }
-        #status-text { margin-top: 15px; color: #7f8c8d; font-size: 0.9rem; font-weight: bold; min-height: 20px; }
-        
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(231,76,60,0.7); } 70% { box-shadow: 0 0 0 20px rgba(231,76,60,0); } 100% { box-shadow: 0 0 0 0 rgba(231,76,60,0); } }
+        :root {
+            --bg-color: #ecf0f1;
+            --chat-bg: #fff;
+            --user-msg: #3498db;
+            --ai-msg: #ecf0f1;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+
+        #chat-container {
+            width: 100%;
+            max-width: 500px;
+            flex: 1;
+            background: var(--chat-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        #header {
+            background: #2c3e50;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        #messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .msg {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 15px;
+            line-height: 1.5;
+            font-size: 1rem;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .msg.user {
+            background: var(--user-msg);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 2px;
+        }
+
+        .msg.ai {
+            background: var(--ai-msg);
+            color: #2c3e50;
+            align-self: flex-start;
+            border-bottom-left-radius: 2px;
+        }
+
+        #controls {
+            padding: 20px;
+            background: #fff;
+            border-top: 1px solid #bdc3c7;
+            text-align: center;
+        }
+
+        #btn-mic {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            font-size: 2rem;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(231, 76, 60, 0.4);
+            transition: transform 0.1s, background 0.3s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0 auto;
+        }
+
+        #btn-mic.recording {
+            background: #c0392b;
+            animation: pulse 1s infinite;
+        }
+
+        #status-text {
+            margin-top: 15px;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            font-weight: bold;
+            min-height: 20px;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 20px rgba(231, 76, 60, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(231, 76, 60, 0);
+            }
+        }
+
+        /* 🌟 強化麥克風波紋與結算按鈕動畫 */
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.8);
+            }
+
+            70% {
+                box-shadow: 0 0 0 25px rgba(231, 76, 60, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(231, 76, 60, 0);
+            }
+        }
+
+        #btn-mic.recording {
+            background: #c0392b;
+            animation: pulse 0.8s infinite;
+            transform: scale(1.1);
+        }
+
+        /* 結算獎勵橫幅 */
+        #reward-banner {
+            display: none;
+            background: linear-gradient(135deg, #f1c40f, #f39c12);
+            color: white;
+            text-align: center;
+            padding: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            animation: fadeInDown 0.5s ease-out;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 提示句建議區塊 */
+        #suggestion-box {
+            display: none;
+            padding: 10px;
+            background: #e8f4f8;
+            color: #2980b9;
+            font-size: 0.9rem;
+            text-align: center;
+            border-radius: 8px;
+            margin: 10px 20px;
+        }
     </style>
 </head>
+
 <body>
 
     <div id="chat-container">
         <div id="header">
-            <select id="scenario-selector" onchange="changeScenario()" style="width:100%; padding:8px; border-radius:6px; background:#34495e; color:white; border:none; font-weight:bold; font-size:1rem;">
-                <option value="aci_networking">🌐 曼谷 ACI 會議交流</option>
-                <option value="gse_regulations">⚡ GSE 充電站規範技術討論</option>
-                <option value="pump_bidding">💧 水壓站汰換工程招標答詢</option>
-                <option value="daily_travel">✈️ 機場海關與日常旅遊</option>
+            <select id="scenario-selector" onchange="changeScenario()"
+                style="width:100%; padding:8px; border-radius:6px; background:#34495e; color:white; border:none; font-weight:bold; font-size:1rem;">
+                <option value="">🔄 正在載入最新實戰情境...</option>
             </select>
         </div>
+        <!-- 🌟 新增：獎勵橫幅 (滿 5 輪顯示) -->
+        <div id="reward-banner" onclick="claimRoleplayReward()">🎉 對話滿 5 輪！點此結算實戰 XP</div>
         <div id="messages">
-            <div class="msg ai">Hello! Are you also attending the ACI RACE conference? It's great to see delegates from Taiwan here in Bangkok!</div>
+            <div class="msg ai">Hello! Are you also attending the ACI RACE conference? It's great to see delegates from
+                Taiwan here in Bangkok!</div>
         </div>
+        <!-- 🌟 新增：辨識失敗或空白時的提示句 -->
+        <div id="suggestion-box">💡 試試說：Could you please elaborate on that?</div>
         <div id="controls">
             <button id="btn-mic" onclick="toggleMic()">🎙️</button>
             <div id="status-text">點擊麥克風開始說話</div>
-            <button onclick="window.location.href='index.html'" style="margin-top: 15px; padding: 8px 15px; border: none; background: #bdc3c7; border-radius: 6px; cursor: pointer;">返回大廳</button>
+            <button onclick="window.location.href='index.html'"
+                style="margin-top: 15px; padding: 8px 15px; border: none; background: #bdc3c7; border-radius: 6px; cursor: pointer;">返回大廳</button>
         </div>
     </div>
 
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbynSXDVVI2Y7N5CCKEOwsWiEF3PM5Ib97D4VC_71VeqSoaMrx0-TpY6gzwkBz_m8NMddA/exec"; // ⚠️ 請填寫您的 GAS 網址
-        
-        // 您的 Google Doc ID (請替換為您第一步建立的文件 ID)
-        const KNOWLEDGE_DOC_ID = "在此貼上您的_Google_Doc_ID"; 
 
-        <!-- HTML 選單區塊修改為預設載入中 -->
-        <div id="header">
-            <select id="scenario-selector" onchange="changeScenario()" style="width:100%; padding:8px; border-radius:6px; background:#34495e; color:white; border:none; font-weight:bold; font-size:1rem;">
-                <option value="">🔄 正在載入最新實戰情境...</option>
-            </select>
-        </div>
+        // 您的 Google Doc ID (請替換為您第一步建立的文件 ID)
+        const KNOWLEDGE_DOC_ID = "在此貼上您的_Google_Doc_ID";
 
         // JavaScript 替換為動態拉取邏輯
         let dynamicScenarios = [];
         let SYSTEM_PROMPT = "";
         let chatHistory = [];
 
+        // 🌟 新增：追蹤對話輪次
+        let userTurnCount = 0;
+        let isRewardClaimed = false;
+
+        // 🌟 增量更新：在全域提早預熱語音引擎，強制瀏覽器在背景載入語音清單
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.getVoices();
+            // 針對部分需要事件觸發才載入清單的瀏覽器 (如 Safari) 追加監聽
+            window.speechSynthesis.onvoiceschanged = function () {
+                window.speechSynthesis.getVoices();
+            };
+        }
+
         // 頁面載入時，自動去後端抓取情境清單
-        window.onload = async function() {
+        window.onload = async function () {
             try {
                 let res = await fetch(`${API_URL}?action=getScenarios`);
                 let data = await res.json();
-                
-                if (data.status === 'success' && data.scenarios.length > 0) {
+
+                if (data.status === 'success' && data.scenarios && data.scenarios.length > 0) {
                     dynamicScenarios = data.scenarios;
-                    
-                    let selector = document.getElementById('scenario-selector');
-                    selector.innerHTML = ''; // 清空預設選項
-                    
-                    dynamicScenarios.forEach((s, index) => {
-                        let opt = document.createElement('option');
-                        opt.value = index;
-                        opt.innerText = s.Title;
-                        selector.appendChild(opt);
-                    });
-                    
-                    // 自動載入第一個情境
-                    changeScenario();
                 } else {
-                    alert("目前題庫尚無情境，請等待 AI 大腦產出。");
+                    throw new Error("題庫為空");
                 }
-            } catch(e) {
-                alert("載入情境失敗，請確認網路連線。");
+            } catch (e) {
+                console.warn("API 載入失敗，啟用備援情境");
+                // 備援情境，確保網路不穩時仍可練習
+                dynamicScenarios = [{
+                    Title: "✈️ 緊急備援：機場海關 (Fallback)",
+                    System_Prompt: "You are a friendly but professional immigration officer at Kaohsiung International Airport. Ask the user about their purpose of visit and duration.",
+                    First_Message: "Welcome to Kaohsiung! May I see your passport? What is the purpose of your visit today?"
+                }];
             }
+
+            // 渲染選單
+            let selector = document.getElementById('scenario-selector');
+            selector.innerHTML = '';
+            dynamicScenarios.forEach((s, index) => {
+                let opt = document.createElement('option');
+                opt.value = index;
+                opt.innerText = s.Title;
+                selector.appendChild(opt);
+            });
+
+            changeScenario();
         };
 
         function changeScenario() {
             let index = document.getElementById('scenario-selector').value;
             let currentData = dynamicScenarios[index];
-            
+
             SYSTEM_PROMPT = currentData.System_Prompt;
             chatHistory = [{ "role": "model", "parts": [{ "text": currentData.First_Message }] }];
-            
-            document.getElementById('messages').innerHTML = ''; // 清空聊天畫面
+
+            // 重置對話與狀態
+            userTurnCount = 0;
+            isRewardClaimed = false;
+            document.getElementById('reward-banner').style.display = 'none';
+            document.getElementById('messages').innerHTML = '';
+            document.getElementById('suggestion-box').style.display = 'none';
+
             appendMessage(currentData.First_Message, 'ai');
             stopMic();
-            // 自動發音開場白
             playTTS(currentData.First_Message);
         }
 
@@ -121,9 +320,23 @@
             };
 
             recognition.onresult = (event) => {
-                let transcript = event.results[0][0].transcript;
+                let transcript = event.results[0][0].transcript.trim();
+
+                if (transcript.length < 2) {
+                    document.getElementById('status-text').innerText = "⚠️ 沒聽清楚，請大聲一點";
+                    document.getElementById('suggestion-box').style.display = 'block';
+                    stopMic();
+                    return;
+                }
+
+                document.getElementById('suggestion-box').style.display = 'none';
                 appendMessage(transcript, 'user');
                 chatHistory.push({ "role": "user", "parts": [{ "text": transcript }] });
+
+                // 增加輪次並檢查是否達標
+                userTurnCount++;
+                checkRewardMilestone();
+
                 sendToAI();
             };
 
@@ -139,6 +352,13 @@
             alert("您的瀏覽器不支援語音辨識功能，請使用 Chrome 或 Safari。");
         }
 
+        // 🌟 檢查是否達到 5 輪
+        function checkRewardMilestone() {
+            if (userTurnCount >= 5 && !isRewardClaimed) {
+                document.getElementById('reward-banner').style.display = 'block';
+            }
+        }
+
         function toggleMic() {
             if (!recognition) return;
             if (isRecording) {
@@ -152,7 +372,7 @@
         function stopMic() {
             isRecording = false;
             document.getElementById('btn-mic').classList.remove('recording');
-            if(document.getElementById('status-text').innerText.includes("聆聽中")) {
+            if (document.getElementById('status-text').innerText.includes("聆聽中")) {
                 document.getElementById('status-text').innerText = "處理中...";
             }
         }
@@ -175,12 +395,13 @@
                     body: JSON.stringify({
                         action: 'chatGemini',
                         systemPrompt: SYSTEM_PROMPT,
-                        history: chatHistory
+                        history: chatHistory,
+                        knowledgeDocId: KNOWLEDGE_DOC_ID // 🌟 夾帶知識庫 ID 交由後端 GAS 讀取
                     }),
                     headers: { 'Content-Type': 'text/plain' }
                 });
                 let result = await res.json();
-                
+
                 if (result.status === 'success') {
                     let aiText = result.reply;
                     appendMessage(aiText, 'ai');
@@ -198,18 +419,68 @@
 
         function playTTS(text) {
             window.speechSynthesis.cancel();
-            // 移除給使用者的 Tip 提示字眼，不讓系統唸出來干擾對話節奏
-            let spokenText = text.replace(/\(Tip:.*?\)/gi, '');
+
+            // 正規表達式：移除小括號 ()、中括號 []、大括號 {} 及其內部所有內容
+            let spokenText = text
+                .replace(/\(Tip:.*?\)/gi, '')
+                .replace(/\(.*?\)/g, '')
+                .replace(/\[.*?\]/g, '')
+                .replace(/\{.*?\}/g, '')
+                .trim();
+
+            // 避免過濾後變成空字串
+            if (spokenText.length === 0) spokenText = "Hmm, let's continue.";
+
             let utterance = new SpeechSynthesisUtterance(spokenText);
-            
             let voices = window.speechSynthesis.getVoices();
             let englishVoice = voices.find(v => v.lang === 'en-US' || v.lang === 'en-GB') || voices[0];
             if (englishVoice) utterance.voice = englishVoice;
-            
+
             utterance.lang = 'en-US';
             utterance.rate = 1.0;
             window.speechSynthesis.speak(utterance);
         }
+
+        // 🌟 新增：領取對話獎勵並寫入資料庫
+        function claimRoleplayReward() {
+            if (isRewardClaimed) return;
+
+            // 隨機給予 50 ~ 100 XP
+            let earnedXP = Math.floor(Math.random() * 51) + 50;
+
+            document.getElementById('reward-banner').innerText = "⏳ 結算中...";
+            document.getElementById('reward-banner').style.pointerEvents = 'none';
+
+            // 假設你已有獲取 currentUser 的邏輯 (例如從 URL 參數或 localStorage)
+            const urlParams = new URLSearchParams(window.location.search);
+            const currentUser = urlParams.get('user') || 'Guest';
+
+            fetch(API_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    token: "TOEIC_SECURE_TOKEN_2026", // 確保與你後端設定的 TOKEN 一致
+                    user: currentUser,
+                    action: 'updateCard',
+                    Card_ID: 'ROLEPLAY_SESSION',
+                    earnedXP: earnedXP
+                }),
+                headers: { 'Content-Type': 'text/plain' }
+            }).then(() => {
+                isRewardClaimed = true;
+                document.getElementById('reward-banner').style.background = "#2ecc71";
+                document.getElementById('reward-banner').innerText = `✅ 成功獲得 +${earnedXP} 實戰 XP！(可繼續對話)`;
+
+                // 3 秒後自動隱藏橫幅
+                setTimeout(() => {
+                    document.getElementById('reward-banner').style.display = 'none';
+                }, 3000);
+            }).catch(err => {
+                console.error("寫入獎勵失敗:", err);
+                document.getElementById('reward-banner').innerText = "⚠️ 網路異常，點擊重試";
+                document.getElementById('reward-banner').style.pointerEvents = 'auto';
+            });
+        }
     </script>
 </body>
+
 </html>
