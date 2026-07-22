@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全真模擬考中心</title>
+    <style>
+        :root {
+            --bg-color: #ecf0f1;
+            --card-bg: #fff;
+            --text-color: #2c3e50;
+            --accent-red: #c0392b;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .mode-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            border-left: 5px solid var(--accent-red);
+            cursor: pointer;
+            transition: transform 0.2s;
+            max-width: 500px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .mode-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .mode-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: var(--accent-red);
+        }
+
+        .mode-desc {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            line-height: 1.5;
+        }
+
+        .mode-tags {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .tag-time {
+            background: #f39c12;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+
+        .tag-xp {
+            background: #8e44ad;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+
+        .sticky-header {
+            position: sticky;
+            top: 0;
+            background: #fff;
+            padding: 10px 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border: 2px solid var(--accent-red);
+        }
+
+        .timer {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--accent-red);
+            font-family: monospace;
+        }
+
+        .btn-option {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 10px;
+            border: 2px solid #bdc3c7;
+            border-radius: 8px;
+            background: white;
+            font-size: 1rem;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-option.selected {
+            background: #3498db;
+            color: white;
+            border-color: #2980b9;
+        }
+
+        /* 🌟 新增：題目平滑切換動畫與戰報強化樣式 */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in-active {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+
+        /* 戰報專屬樣式 */
+        .battle-report {
+            background: linear-gradient(145deg, #ffffff, #fdfefe);
+            border: 2px solid #f39c12;
+            padding: 25px;
+            border-radius: 12px;
+            margin: 20px 0;
+            text-align: left;
+            box-shadow: 0 8px 15px rgba(243, 156, 18, 0.1);
+        }
+
+        .report-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            color: #34495e;
+            font-weight: 600;
+            align-items: center;
+        }
+
+        .report-value {
+            font-family: monospace;
+            font-size: 1.1rem;
+            color: #2c3e50;
+        }
+
+        .report-bonus {
+            color: #e67e22;
+        }
+
+        .report-total {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #c0392b;
+            border-top: 2px dashed #bdc3c7;
+            padding-top: 15px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- 🛡️ 模式選擇大廳 -->
+    <div id="selection-screen" style="width: 100%; max-width: 500px;">
+        <h1 style="text-align: center; color: var(--accent-red);">⚔️ 模擬考戰情中心</h1>
+        <p style="text-align: center; color: #7f8c8d; margin-bottom: 30px;">測驗中將隱藏解析與對錯提示，模擬真實考場高壓環境。</p>
+
+        <div class="mode-card" onclick="startExam('mini')">
+            <div class="mode-title">綜合熱身測驗 (50 題)</div>
+            <div class="mode-desc">短時距的高效驗收。平均抽取聽力 25 題與閱讀 25 題。</div>
+            <div class="mode-tags"><span class="tag-time">⏱️ 30 分鐘</span><span class="tag-xp">🏆 加成最高 +500 XP</span>
+            </div>
+        </div>
+
+        <div class="mode-card" onclick="startExam('half')">
+            <div class="mode-title">半真模擬測驗 (100 題)</div>
+            <div class="mode-desc">標準的多益縮減版。聽力 50 題與閱讀 50 題的體力考驗。</div>
+            <div class="mode-tags"><span class="tag-time">⏱️ 60 分鐘</span><span class="tag-xp">🏆 加成最高 +1200 XP</span>
+            </div>
+        </div>
+
+        <div class="mode-card" onclick="startExam('listening')">
+            <div class="mode-title">🎧 正式聽力測驗 (100 題)</div>
+            <div class="mode-desc">Part 1 到 Part 4 全覆蓋。強迫大腦在英文語速中持續運轉。</div>
+            <div class="mode-tags"><span class="tag-time">⏱️ 45 分鐘</span><span class="tag-xp">🏆 加成最高 +1500 XP</span>
+            </div>
+        </div>
+
+        <div class="mode-card" onclick="startExam('reading')">
+            <div class="mode-title">📖 正式閱讀測驗 (100 題)</div>
+            <div class="mode-desc">Part 5 到 Part 7 全覆蓋。極限的長篇閱讀與文法耐力測試。</div>
+            <div class="mode-tags"><span class="tag-time">⏱️ 75 分鐘</span><span class="tag-xp">🏆 加成最高 +1500 XP</span>
+            </div>
+        </div>
+
+        <button onclick="window.location.href='index.html?user=' + currentUser"
+            style="width:100%; padding: 15px; margin-top:20px; background:#bdc3c7; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">返回大廳</button>
+    </div>
+
+    <!-- ⚔️ 測驗進行區 -->
+    <div id="loading-screen" style="display:none; text-align: center; margin-top: 50px;">
+        <h2>⚙️ 正在為您配卷與洗牌...</h2>
+    </div>
+
+    <div id="quiz-area" style="display:none; width: 100%; max-width: 500px;">
+        <div class="sticky-header">
+            <div>進度: <span id="progress-text">1 / 50</span></div>
+            <div class="timer" id="timer-display">30:00</div>
+        </div>
+
+        <!-- 單題容器 -->
+        <div id="single-question-container" style="display:none;">
+            <div id="q-part-badge" style="font-weight:bold; color:#7f8c8d; margin-bottom:10px;">Part X</div>
+            <img id="q-image" src="" style="width:100%; border-radius:8px; display:none; margin-bottom:15px;">
+            <button id="q-audio-btn"
+                style="display:none; width:100%; padding:10px; background:#3498db; color:white; border:none; border-radius:8px; margin-bottom:15px;"
+                onclick="playAudio()">🔊 播放題目</button>
+            <div id="q-text" style="font-size: 1.2rem; font-weight: bold; margin-bottom: 20px;"></div>
+
+            <div id="options-area"></div>
+            <button id="btn-next" onclick="submitAndNext()"
+                style="width:100%; padding:15px; background:#95a5a6; color:white; border:none; border-radius:8px; margin-top:20px;"
+                disabled>請選擇答案</button>
+        </div>
+
+        <!-- 題組容器 -->
+        <div id="group-question-container" style="display:none;">
+            <div id="g-part-badge" style="font-weight:bold; color:#7f8c8d; margin-bottom:10px;">Part X</div>
+            <div id="g-article"
+                style="background:#fff; padding:15px; border-radius:8px; border-left:4px solid #3498db; margin-bottom:15px; font-size:0.95rem; line-height:1.6; display:none; max-height:40vh; overflow-y:auto;">
+            </div>
+            <button id="g-audio-btn"
+                style="display:none; width:100%; padding:10px; background:#3498db; color:white; border:none; border-radius:8px; margin-bottom:15px;"
+                onclick="playGroupAudio()">🔊 播放題組對話</button>
+
+            <div id="g-questions-area"></div>
+            <button id="btn-group-next" onclick="submitGroupAndNext()"
+                style="width:100%; padding:15px; background:#95a5a6; color:white; border:none; border-radius:8px; margin-top:20px;"
+                disabled>請完成所有題目</button>
+        </div>
+    </div>
+
+    <!-- 🎉 結算區 -->
+    <div id="result-screen" style="display:none; width: 100%; max-width: 500px; text-align: center;">
+        <h1 style="font-size: 3rem; margin-top: 50px;">🏁</h1>
+        <h2 style="color: var(--accent-red);">測驗結束</h2>
+
+        <div
+            style="background: white; padding: 20px; border-radius: 12px; margin: 20px 0; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+            <p style="font-size: 1.2rem; margin: 10px 0;">正確率：<strong id="res-accuracy"
+                    style="font-size: 1.5rem; color: #2ecc71;">0%</strong></p>
+            <p style="color: #7f8c8d; margin: 0;" id="res-details">( 0 / 0 )</p>
+        </div>
+
+        <!-- 🌟 新增的雙重 XP 結算明細區塊 -->
+        <div class="battle-report">
+            <h3 style="margin:0 0 20px 0; color: #2c3e50; text-align: center; font-size: 1.4rem;">⚔️ 實戰獎勵戰報</h3>
+            <div class="report-row">
+                <span>📝 單題基礎累積</span>
+                <span class="report-value" id="res-base-xp">+0 XP</span>
+            </div>
+            <div class="report-row">
+                <span>🏁 模擬考完賽加成</span>
+                <span class="report-value report-bonus" id="res-completion-xp">+0 XP</span>
+            </div>
+            <div class="report-row">
+                <span>🎯 達標績效獎金</span>
+                <span class="report-value report-bonus" id="res-accuracy-xp">+0 XP</span>
+            </div>
+            <div class="report-row report-total">
+                <span>總獲得經驗</span>
+                <span id="res-total-xp">+0 XP</span>
+            </div>
+        </div>
+
+        <button id="btn-claim" onclick="claimReward()"
+            style="width:100%; padding: 15px; background: #3498db; color:white; border:none; border-radius:8px; font-weight:bold; font-size:1.1rem; cursor:pointer;">領取獎勵並返回大廳</button>
+    </div>
+
+    <script>
+        // === 核心設定 ===
+        const API_URL = "https://script.google.com/macros/s/AKfycbynSXDVVI2Y7N5CCKEOwsWiEF3PM5Ib97D4VC_71VeqSoaMrx0-TpY6gzwkBz_m8NMddA/exec";
+        const API_TOKEN = "TOEIC_SECURE_TOKEN_2026";
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentUser = urlParams.get('user') || 'Guest';
+
+        let allCardsPool = { Part1: [], Part2: [], Part3: [], Part4: [], Part5: [], Part6: [], Part7: [] };
+        let examQueue = [];
+        let currentQIndex = 0;
+
+        let correctCount = 0;
+        let totalSubQuestions = 0;
+
+        let timerInterval;
+        let bonusTargetXP = 0;
+        let accumulatedBaseXP = 0;
+        let currentMode = "";
+        let userSelectedOption = null;
+        let groupSelectedOptions = [];
+
+        // 🌟 新增：背景連線狀態控制
+        let globalCardsData = null;
+        let isFetching = false;
+        let fetchPromise = null;
+
+        // 🌟 1. 帶有 Timeout 與自動重試機制的資料獲取
+        async function fetchWithRetry(url, retries = 2, timeout = 60000) {
+            for (let i = 0; i <= retries; i++) {
+                const controller = new AbortController();
+                const id = setTimeout(() => controller.abort(), timeout);
+                try {
+                    const response = await fetch(url, { signal: controller.signal });
+                    clearTimeout(id); // 成功則清理 timeout
+                    if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+                    return await response.json();
+                } catch (e) {
+                    clearTimeout(id);
+                    console.warn(`API 請求中斷或失敗 (嘗試 ${i + 1}/${retries + 1}):`, e.message);
+                    if (i === retries) throw new Error("伺服器無回應，請確認網路或稍後再試。");
+                    // 隨機延遲 2~4 秒避免多個請求同時重擊伺服器 (Jitter)
+                    await new Promise(res => setTimeout(res, 2000 + Math.random() * 2000));
+                }
+            }
+        }
+
+        // 🌟 2. 背景預先載入功能 (Prefetching)
+        function preloadDatabase() {
+            if (isFetching || globalCardsData) return fetchPromise;
+            isFetching = true;
+            fetchPromise = fetchWithRetry(`${API_URL}?token=${API_TOKEN}&action=getCards&user=${currentUser}`)
+                .then(data => {
+                    globalCardsData = data.cards;
+                    isFetching = false;
+                    return data.cards;
+                })
+                .catch(err => {
+                    isFetching = false;
+                    fetchPromise = null;
+                    console.error("題庫預先載入失敗，將於點選時重試:", err);
+                });
+            return fetchPromise;
+        }
+
+        // 頁面一載入完畢，立刻在背景偷偷抓題庫
+        window.addEventListener('DOMContentLoaded', preloadDatabase);
+
+        function getBaseXP(part) {
+            if (part === 'Part1') return 10;
+            if (['Part2', 'Part5'].includes(part)) return 15;
+            if (['Part3', 'Part4'].includes(part)) return 80;
+            if (part === 'Part6') return 90;
+            if (part === 'Part7') return 120;
+            return 15;
+        }
+
+        // 🌟 3. 覆寫測驗啟動邏輯，結合預載入
+        async function startExam(mode) {
+            currentMode = mode;
+            document.getElementById('selection-screen').style.display = 'none';
+            document.getElementById('loading-screen').style.display = 'block';
+
+            try {
+                // 如果背景已經抓好資料，瞬間進入；如果還沒，就等待
+                let cardsList = globalCardsData;
+                if (!cardsList) {
+                    document.getElementById('loading-screen').innerHTML = "<h2>⚙️ 正在向大水庫請求資料，請稍候...</h2><p style='color:#7f8c8d;'>(為確保連線品質，最多可能需時 15~30 秒)</p>";
+                    cardsList = await preloadDatabase();
+                }
+
+                if (!cardsList || cardsList.length === 0) {
+                    throw new Error("無法取得題庫資料，或題庫為空。");
+                }
+
+                // 重置洗牌池
+                allCardsPool = { Part1: [], Part2: [], Part3: [], Part4: [], Part5: [], Part6: [], Part7: [] };
+                cardsList.forEach(c => {
+                    if (allCardsPool[c.Part]) allCardsPool[c.Part].push(c);
+                });
+
+                let draw = (arr, num) => arr.sort(() => 0.5 - Math.random()).slice(0, num);
+                let minutes = 30;
+
+                if (mode === 'mini') {
+                    minutes = 30; bonusTargetXP = 500;
+                    examQueue = [
+                        ...draw(allCardsPool.Part1, 2), ...draw(allCardsPool.Part2, 6),
+                        ...draw(allCardsPool.Part3, 2), ...draw(allCardsPool.Part4, 2),
+                        ...draw(allCardsPool.Part5, 8), ...draw(allCardsPool.Part6, 1),
+                        ...draw(allCardsPool.Part7, 2)
+                    ];
+                } else if (mode === 'half') {
+                    minutes = 60; bonusTargetXP = 1200;
+                    examQueue = [
+                        ...draw(allCardsPool.Part1, 4), ...draw(allCardsPool.Part2, 12),
+                        ...draw(allCardsPool.Part3, 4), ...draw(allCardsPool.Part4, 4),
+                        ...draw(allCardsPool.Part5, 15), ...draw(allCardsPool.Part6, 2),
+                        ...draw(allCardsPool.Part7, 4)
+                    ];
+                } else if (mode === 'listening') {
+                    minutes = 45; bonusTargetXP = 1500;
+                    examQueue = [
+                        ...draw(allCardsPool.Part1, 6), ...draw(allCardsPool.Part2, 25),
+                        ...draw(allCardsPool.Part3, 10), ...draw(allCardsPool.Part4, 8)
+                    ];
+                } else if (mode === 'reading') {
+                    minutes = 75; bonusTargetXP = 1500;
+                    examQueue = [
+                        ...draw(allCardsPool.Part5, 30), ...draw(allCardsPool.Part6, 4),
+                        ...draw(allCardsPool.Part7, 8)
+                    ];
+                }
+
+                examQueue.sort(() => 0.5 - Math.random());
+
+                totalSubQuestions = 0;
+                examQueue.forEach(q => {
+                    if (['Part3', 'Part4', 'Part6', 'Part7'].includes(q.Part)) {
+                        try { totalSubQuestions += JSON.parse(q.Option_A).length; } catch (e) { totalSubQuestions += 3; }
+                    } else {
+                        totalSubQuestions += 1;
+                    }
+                });
+
+                document.getElementById('loading-screen').style.display = 'none';
+                document.getElementById('quiz-area').style.display = 'block';
+
+                startTimer(minutes);
+                renderQuestion();
+
+            } catch (e) {
+                console.error(e);
+                alert("❌ 連線逾時或讀取失敗。這可能是因為雲端伺服器忙碌，請確認網路狀態後重整頁面再次嘗試。");
+                window.location.reload();
+            }
+        }
+
+
+        function startTimer(minutes) {
+            let seconds = minutes * 60;
+            let display = document.getElementById('timer-display');
+
+            timerInterval = setInterval(() => {
+                seconds--;
+                let m = Math.floor(seconds / 60);
+                let s = seconds % 60;
+                display.innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+
+                if (seconds <= 0) {
+                    clearInterval(timerInterval);
+                    alert("⏱️ 時間到！強制作答結束。");
+                    endExam();
+                }
+            }, 1000);
+        }
+
+        function renderQuestion() {
+            if (currentQIndex >= examQueue.length) {
+                endExam(); return;
+            }
+
+            let q = examQueue[currentQIndex];
+            document.getElementById('progress-text').innerText = `${currentQIndex + 1} / ${examQueue.length}`;
+
+            let isGroup = ['Part3', 'Part4', 'Part6', 'Part7'].includes(q.Part);
+
+            // 先行隱藏容器，準備重繪與套用動畫
+            let singleContainer = document.getElementById('single-question-container');
+            let groupContainer = document.getElementById('group-question-container');
+            singleContainer.style.display = 'none';
+            groupContainer.style.display = 'none';
+            singleContainer.classList.remove('fade-in-active');
+            groupContainer.classList.remove('fade-in-active');
+
+            if (!isGroup) {
+                // ... (原有的單題渲染邏輯維持不變，包含圖片、語音、選項生成等) ...
+                userSelectedOption = null;
+                document.getElementById('q-part-badge').innerText = q.Part;
+                document.getElementById('q-image').style.display = q.Image_URL ? 'block' : 'none';
+                if (q.Image_URL) document.getElementById('q-image').src = q.Image_URL;
+
+                document.getElementById('q-audio-btn').style.display = (q.Part === 'Part2' || q.Question_Audio) ? 'block' : 'none';
+                document.getElementById('q-text').innerText = (q.Part === 'Part2') ? "🔊 請聽語音並選擇最適當的回答" : q.Question;
+
+                let optsHtml = '';
+                ['A', 'B', 'C', 'D'].forEach(opt => {
+                    let optText = q[`Option_${opt}`];
+                    if (optText) {
+                        let displayOpt = (q.Part === 'Part2') ? `(${opt})` : `(${opt}) ${optText}`;
+                        optsHtml += `<button class="btn-option" id="s-opt-${opt}" onclick="selectSingle('${opt}')">${displayOpt}</button>`;
+                    }
+                });
+                document.getElementById('options-area').innerHTML = optsHtml;
+
+                let btnNext = document.getElementById('btn-next');
+                btnNext.disabled = true;
+                btnNext.style.background = "#95a5a6";
+
+                // 觸發重新渲染並套用動畫
+                void singleContainer.offsetWidth; // Trigger reflow
+                singleContainer.style.display = 'block';
+                singleContainer.classList.add('fade-in-active');
+
+            } else {
+                // ... (原有的題組渲染邏輯維持不變) ...
+                document.getElementById('g-part-badge').innerText = q.Part;
+                let articleEl = document.getElementById('g-article');
+                if (q.Context_Article) {
+                    articleEl.innerHTML = q.Context_Article;
+                    articleEl.style.display = 'block';
+                } else {
+                    articleEl.style.display = 'none';
+                }
+                document.getElementById('g-audio-btn').style.display = ['Part3', 'Part4'].includes(q.Part) ? 'block' : 'none';
+
+                let subQs = [];
+                try { subQs = JSON.parse(q.Option_A); } catch (e) { }
+                groupSelectedOptions = new Array(subQs.length).fill(null);
+
+                let subHtml = '';
+                subQs.forEach((subQ, idx) => {
+                    subHtml += `
+                    <div style="margin-bottom:20px; border-bottom:1px dashed #bdc3c7; padding-bottom:15px;">
+                        <div style="font-weight:bold; margin-bottom:10px;">${idx + 1}. ${subQ.Question}</div>
+                        <div style="display:grid; gap:10px;">
+                            <button class="btn-option" style="margin:0;" id="g-opt-${idx}-A" onclick="selectGroup(${idx}, 'A')">(A) ${subQ.Option_A}</button>
+                            <button class="btn-option" style="margin:0;" id="g-opt-${idx}-B" onclick="selectGroup(${idx}, 'B')">(B) ${subQ.Option_B}</button>
+                            <button class="btn-option" style="margin:0;" id="g-opt-${idx}-C" onclick="selectGroup(${idx}, 'C')">(C) ${subQ.Option_C}</button>
+                            <button class="btn-option" style="margin:0;" id="g-opt-${idx}-D" onclick="selectGroup(${idx}, 'D')">(D) ${subQ.Option_D}</button>
+                        </div>
+                    </div>`;
+                });
+                document.getElementById('g-questions-area').innerHTML = subHtml;
+
+                let btnNext = document.getElementById('btn-group-next');
+                btnNext.disabled = true;
+                btnNext.style.background = "#95a5a6";
+
+                // 觸發重新渲染並套用動畫
+                void groupContainer.offsetWidth; // Trigger reflow
+                groupContainer.style.display = 'block';
+                groupContainer.classList.add('fade-in-active');
+            }
+        }
+
+        function selectSingle(opt) {
+            userSelectedOption = opt;
+            ['A', 'B', 'C', 'D'].forEach(o => {
+                let el = document.getElementById(`s-opt-${o}`);
+                if (el) el.classList.remove('selected');
+            });
+            document.getElementById(`s-opt-${opt}`).classList.add('selected');
+
+            let btnNext = document.getElementById('btn-next');
+            btnNext.disabled = false;
+            btnNext.style.background = "#3498db";
+        }
+
+        function selectGroup(qIdx, opt) {
+            groupSelectedOptions[qIdx] = opt;
+            ['A', 'B', 'C', 'D'].forEach(o => {
+                let el = document.getElementById(`g-opt-${qIdx}-${o}`);
+                if (el) el.classList.remove('selected');
+            });
+            document.getElementById(`g-opt-${qIdx}-${opt}`).classList.add('selected');
+
+            if (!groupSelectedOptions.includes(null)) {
+                let btnNext = document.getElementById('btn-group-next');
+                btnNext.disabled = false;
+                btnNext.style.background = "#3498db";
+            }
+        }
+
+        // 🌟 6. 送出並記錄分數 (加入單題經驗疊加)
+        function submitAndNext() {
+            let q = examQueue[currentQIndex];
+
+            // 記錄答對題數
+            if (userSelectedOption === q.Correct_Answer.toUpperCase().trim()) {
+                correctCount++;
+            }
+
+            // 🌟 單題經驗疊加：只要有作答，就獲得該題型的 BaseXP
+            accumulatedBaseXP += getBaseXP(q.Part);
+
+            currentQIndex++;
+            renderQuestion();
+        }
+
+        function submitGroupAndNext() {
+            let q = examQueue[currentQIndex];
+
+            // 🌟 增量更新：加入 try...catch，防止非標準 JSON 直接卡死主執行緒
+            let subQs = [];
+            try {
+                subQs = JSON.parse(q.Option_A);
+            } catch (e) {
+                console.error("題組答案批改時 JSON 解析失敗:", e);
+            }
+
+            // 記錄答對題數
+            subQs.forEach((sub, idx) => {
+                if (groupSelectedOptions[idx] === (sub.Correct_Answer || "").toUpperCase().trim()) {
+                    correctCount++;
+                }
+            });
+
+            // 🌟 題組經驗疊加 (一個題組算一次大分)
+            accumulatedBaseXP += getBaseXP(q.Part);
+
+            currentQIndex++;
+            renderQuestion();
+        }
+
+        // 🌟 7. 測驗結束與三軌結算系統
+        function endExam() {
+            clearInterval(timerInterval);
+            document.getElementById('quiz-area').style.display = 'none';
+            let resultScreen = document.getElementById('result-screen');
+            resultScreen.style.display = 'block';
+            resultScreen.classList.add('fade-in-active'); // 套用進場動畫
+
+            let accuracy = totalSubQuestions === 0 ? 0 : Math.round((correctCount / totalSubQuestions) * 100);
+
+            // 軌道二：完賽固定獎勵 (只要做完就給)
+            let completionXP = 0;
+            if (currentMode === 'mini') completionXP = 200;
+            else if (currentMode === 'half') completionXP = 500;
+            else completionXP = 800; // listening 或 reading 100 題模式
+
+            // 軌道三：答對率級距獎金 (依據設定的 bonusTargetXP 按比例發放)
+            let accuracyBonusXP = 0;
+            if (accuracy >= 90) {
+                accuracyBonusXP = bonusTargetXP; // S級：全額拿滿
+            } else if (accuracy >= 75) {
+                accuracyBonusXP = Math.floor(bonusTargetXP * 0.6); // A級：拿 60%
+            } else if (accuracy >= 60) {
+                accuracyBonusXP = Math.floor(bonusTargetXP * 0.3); // B級：拿 30%
+            } else {
+                accuracyBonusXP = 0; // C級以下無績效獎金
+            }
+
+            // 總和結算
+            let finalTotalXP = accumulatedBaseXP + completionXP + accuracyBonusXP;
+
+            // 更新 UI 結算明細
+            document.getElementById('res-accuracy').innerText = `${accuracy}%`;
+            document.getElementById('res-details').innerText = `( 答對 ${correctCount} / 總題數 ${totalSubQuestions} )`;
+
+            document.getElementById('res-base-xp').innerText = `+${accumulatedBaseXP} XP`;
+
+            // 🌟 增量更新：修正 DOM 節點綁定，移除不存在的 res-bonus-xp 區塊，直接寫入對應欄位
+            document.getElementById('res-completion-xp').innerText = `+${completionXP} XP`;
+            document.getElementById('res-accuracy-xp').innerText = `+${accuracyBonusXP} XP`;
+
+            document.getElementById('res-total-xp').innerText = `+${finalTotalXP} XP`;
+
+            // 將總 XP 與關鍵擴充數據綁定到按鈕，供 claimReward 讀取
+            let btnClaim = document.getElementById('btn-claim');
+            btnClaim.setAttribute('data-xp', finalTotalXP);
+            btnClaim.setAttribute('data-accuracy', accuracy);
+            btnClaim.setAttribute('data-mode', currentMode);
+        }
+
+        // 🌟 8. 領取獎勵寫入資料庫
+        function claimReward() {
+            let btn = document.getElementById('btn-claim');
+            let xp = parseInt(btn.getAttribute('data-xp') || 0);
+            let finalAccuracy = parseInt(btn.getAttribute('data-accuracy') || 0);
+            let modeUsed = btn.getAttribute('data-mode');
+
+            btn.innerText = "正在同步戰鬥數據...";
+            btn.disabled = true;
+            btn.style.background = "#7f8c8d";
+
+            fetch(API_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    token: API_TOKEN,
+                    user: currentUser,
+                    action: 'updateCard',
+                    Card_ID: "BOSS_MODE_REWARD",
+                    earnedXP: xp,
+                    // 🌟 擴充數據傳輸：備供 index.html 儀表板能力雷達圖使用
+                    examParams: {
+                        mode: modeUsed,
+                        accuracy: finalAccuracy,
+                        timestamp: new Date().toISOString()
+                    }
+                }),
+                headers: { 'Content-Type': 'text/plain' }
+            }).then(() => {
+                window.location.href = `index.html?user=${currentUser}`;
+            }).catch(err => {
+                console.error("寫入獎勵失敗:", err);
+                alert("⚠️ 經驗值同步似乎遇到網路問題，但系統已為您記錄。");
+                window.location.href = `index.html?user=${currentUser}`; // 失敗仍導回大廳避免卡死
+            });
+        }
+
+        // --- 語音播放輔助函數 ---
+        function playAudio() {
+            let q = examQueue[currentQIndex];
+            window.speechSynthesis.cancel();
+            let txt = q.Question_Audio || q.Question;
+            let u = new SpeechSynthesisUtterance(txt);
+            u.lang = 'en-US'; u.rate = 0.9;
+            window.speechSynthesis.speak(u);
+        }
+        function playGroupAudio() {
+            let q = examQueue[currentQIndex];
+            window.speechSynthesis.cancel();
+            let txt = q.Question_Audio.replace(/M:|W:|Man:|Woman:/gi, "");
+            let u = new SpeechSynthesisUtterance(txt);
+            u.lang = 'en-US'; u.rate = 0.9;
+            window.speechSynthesis.speak(u);
+        }
+    </script>
+</body>
+
+</html>
