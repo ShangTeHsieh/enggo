@@ -1,0 +1,2706 @@
+
+// 你的專屬 API 鑰匙
+var SECRET_TOKEN = "derek_srs_2026"; 
+
+// 日期格式化小工具
+function getLocalDateString(dateObj) {
+  var d = new Date(dateObj);
+  if (isNaN(d.getTime())) return "";
+  var year = d.getFullYear();
+  var month = ('0' + (d.getMonth() + 1)).slice(-2);
+  var day = ('0' + d.getDate()).slice(-2);
+  return year + '-' + month + '-' + day;
+}
+
+function doGet(e) {
+  if (e.parameter.token !== SECRET_TOKEN) {
+    return ContentService.createTextOutput("Access Denied").setMimeType(ContentService.MimeType.TEXT);
+  }
+
+  var action = e.parameter.action;
+  var user = e.parameter.user || "Derek"; 
+  var appType = e.parameter.app || "speaking"; 
+
+  // 🌟 增量更新：系統配置與會員中心 API
+  if (action === "getSystemConfig") {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheetMembers = ss.getSheetByName("Members_Settings");
+    var members = {};
+    if (sheetMembers) {
+      var data = sheetMembers.getDataRange().getValues();
+      for (var i = 1; i < data.length; i++) {
+        var uid = data[i][0];
+        if (uid) {
+          members[uid] = {
+            Password: data[i][1] ? data[i][1].toString() : "",
+            Target_Exam_Date: (data[i][2] instanceof Date) ? getLocalDateString(data[i][2]) : data[i][2],
+            AI_Mode: data[i][3] === true || data[i][3] === "TRUE",
+            Goal_Speaking: parseInt(data[i][4]) || 10,
+            Goal_Part1: parseInt(data[i][5]) || 10,
+            Goal_Part2: parseInt(data[i][6]) || 10,
+            Goal_Part3: parseInt(data[i][7]) || 10,
+            Goal_Part4: parseInt(data[i][8]) || 10,
+            Goal_Part5: parseInt(data[i][9]) || 10,
+            Goal_Part6: parseInt(data[i][10]) || 10,
+            Goal_Part7: parseInt(data[i][11]) || 10,
+            Total_XP: parseInt(data[i][12]) || 0,   // 🌟 讀取 M 欄
+            Current_Level: parseInt(data[i][13]) || 1 // 🌟 讀取 N 欄
+          };
+        }
+      }
+    }
+    return ContentService.createTextOutput(JSON.stringify({ status: "success", members: members })).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  if (action === "getData") {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheetCards = (appType === "toeic") ? ss.getSheetByName("TOEIC_Bank") : ss.getSheetByName("Flashcards");
+    var sheetStats = ss.getSheetByName("userStates"); 
+    var sheetProgress = ss.getSheetByName("User_Progress"); // 🌟 讀取獨立進度表
+
+    // 1. 讀取個人打卡與金牌紀錄
+    var stats = { lastLoginDate: "", streak: 0, freezeTokens: 2 };
+    if (sheetStats) {
+      var allStats = sheetStats.getDataRange().getValues();
+      for (var j = 1; j < allStats.length; j++) {
+        if (allStats[j][0] === user) { 
+          stats = {
+            lastLoginDate: allStats[j][1] || "",
+            streak: allStats[j][2] || 0,
+            freezeTokens: allStats[j][3] || 0
+          };
+          if (stats.lastLoginDate instanceof Date) {
+            stats.lastLoginDate = getLocalDateString(stats.lastLoginDate);
+          }
+          break;
+        }
+      }
+    }
+
+    // 2. 🌟 讀取使用者的個別進度 (轉成 Dictionary/Map 提升效能)
+    var userProgressMap = {};
+    if (sheetProgress) {
+      var progressData = sheetProgress.getDataRange().getValues();
+      // 欄位預設：[Progress_ID, User_ID, Card_ID, NextReviewDate, IsStuck, Interval, EaseFactor]
+      for (var p = 1; p < progressData.length; p++) {
+        if (progressData[p][1] === user) { 
+          var cId = progressData[p][2];
+          userProgressMap[cId] = {
+            nextReviewDate: progressData[p][3],
+            isStuck: progressData[p][4],
+            interval: progressData[p][5],
+            easeFactor: progressData[p][6]
+          };
+        }
+      }
+    }
+
+    var cards = [];
+    if (sheetCards) {
+      var data = sheetCards.getDataRange().getValues();
+      
+      for (var i = 1; i < data.length; i++) {
+        var cardId = data[i][0]; // A欄現在統一都是 Card_ID
+        if (!cardId) continue;
+
+        // 🌟 從 Map 中抓取該使用者的進度，若無則給予「新題」初始值
+        var pData = userProgressMap[cardId] || {
+            nextReviewDate: getLocalDateString(new Date()), // 預設今天需複習
+            isStuck: 0,
+            interval: 0,
+            easeFactor: 2.5
+        };
+
+        if (pData.isStuck == 1) continue; // 隔離題過濾
+
+        // 組裝卡片 
+        if (appType === "toeic") {
+            cards.push({
+              Card_ID: cardId, // 🌟 新增：傳遞給前端的唯一識別碼
+              rowNumber: i + 1, // 保留列號供報錯使用
+              Part: data[i][1],
+              TestPoint: data[i][2],
+              Type: data[i][3],
+              Image_URL: data[i][4],
+              Context_Article: data[i][5],
+              Question_Audio: data[i][6],
+              Option_A: data[i][7],
+              Option_B: data[i][8],
+              Option_C: data[i][9],
+              Option_D: data[i][10],
+              Correct_Answer: data[i][11],
+              Translation: data[i][12],
+              Analysis: data[i][13],
+              nextReviewDate: (pData.nextReviewDate instanceof Date) ? getLocalDateString(pData.nextReviewDate) : pData.nextReviewDate,
+              interval: pData.interval,
+              easeFactor: pData.easeFactor
+            });
+        } else {
+            cards.push({
+              Card_ID: cardId, // 🌟 新增
+              rowNumber: i + 1,
+              tag: data[i][1],
+              scenario_tw: data[i][2],
+              context_tw: data[i][3],
+              sentence_en: data[i][4],
+              nextReviewDate: (pData.nextReviewDate instanceof Date) ? getLocalDateString(pData.nextReviewDate) : pData.nextReviewDate,
+              interval: pData.interval,
+              easeFactor: pData.easeFactor
+            });
+        }
+      }
+    }
+
+    var result = { stats: stats, cards: cards };
+    return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // 🌟 讀取口說情境選單
+  if (e.parameter.action === "getScenarios") {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("Speaking_Bank");
+    var data = sheet.getDataRange().getValues();
+    var scenarios = [];
+    
+    // 反向讀取，抓取最新的 10 個情境
+    for (var i = data.length - 1; i >= 1 && scenarios.length < 10; i--) {
+      scenarios.push({
+        Title: data[i][1],
+        System_Prompt: data[i][2],
+        First_Message: data[i][3]
+      });
+    }
+    return ContentService.createTextOutput(JSON.stringify({status: "success", scenarios: scenarios})).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doPost(e) {
+  var jsonString = e.postData.contents;
+  var data = JSON.parse(jsonString);
+
+  if (data.token !== SECRET_TOKEN) {
+    return ContentService.createTextOutput(JSON.stringify({status: "error", msg: "Token Invalid!"})).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var user = data.user || "Derek";
+  var appType = data.app || "speaking"; 
+  var sheetCards = (appType === "toeic") ? ss.getSheetByName("TOEIC_Bank") : ss.getSheetByName("Flashcards");
+  var sheetStats = ss.getSheetByName("userStates");
+  var sheetProgress = ss.getSheetByName("User_Progress"); 
+
+  // ==========================================
+  // 1. 更新卡片進度與結算 XP
+  // ==========================================
+  if (data.action === "updateCard") {
+     var cardId = data.Card_ID; 
+     var rowNum = data.rowNumber;
+     
+     // 🚨 報錯機制
+     if (data.isError === 1 && sheetCards) {
+         var errorCol = (appType === "toeic") ? 15 : 6; 
+         var currentError = sheetCards.getRange(rowNum, errorCol).getValue();
+         var timeStamp = Utilities.formatDate(new Date(), "GMT+8", "MM/dd HH:mm");
+         var newErrorMsg = currentError ? currentError + " | " : "";
+         newErrorMsg += `⚠️ ${user} 報錯 (${timeStamp})`;
+         sheetCards.getRange(rowNum, errorCol).setValue(newErrorMsg).setBackground("#f4cccc"); 
+     }
+
+     // 🌟 進度寫入機制
+     if (sheetProgress && cardId) {
+         var progressData = sheetProgress.getDataRange().getValues();
+         var foundRow = -1;
+         
+         for (var p = 1; p < progressData.length; p++) {
+             if (progressData[p][1] === user && progressData[p][2] === cardId) {
+                 foundRow = p + 1;
+                 break;
+             }
+         }
+
+         if (foundRow !== -1) {
+             sheetProgress.getRange(foundRow, 4).setValue(data.nextReviewDate);
+             sheetProgress.getRange(foundRow, 5).setValue(data.isStuck);
+             sheetProgress.getRange(foundRow, 6).setValue(data.interval);
+             sheetProgress.getRange(foundRow, 7).setValue(data.easeFactor);
+         } else {
+             var newProgressId = "PRG-" + Math.random().toString(36).substring(2, 10).toUpperCase();
+             sheetProgress.appendRow([newProgressId, user, cardId, data.nextReviewDate, data.isStuck, data.interval, data.easeFactor]);
+         }
+     }
+
+     // 🌟 XP 結算與等級升級引擎
+    if (data.earnedXP && data.user !== 'Guest') {
+      var sheetMembers = ss.getSheetByName("Members_Settings");
+      var membersData = sheetMembers.getDataRange().getValues();
+      for (var m = 1; m < membersData.length; m++) {
+        if (membersData[m][0] === data.user) {
+          var currentXP = parseInt(membersData[m][12]) || 0; 
+          var newXP = currentXP + parseInt(data.earnedXP);
+          
+          var newLevel = 1;
+          for (var lvl = 1; lvl <= 100; lvl++) {
+            if (newXP >= Math.floor(100 * Math.pow(lvl, 1.8))) {
+              newLevel = lvl;
+            } else {
+              break;
+            }
+          }
+          if (newLevel > 100) newLevel = 100;
+
+          sheetMembers.getRange(m + 1, 13).setValue(newXP);
+          sheetMembers.getRange(m + 1, 14).setValue(newLevel);
+          break;
+        }
+      }
+    }
+     return ContentService.createTextOutput(JSON.stringify({status: "success"})).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // ==========================================
+  // 2. 更新使用者登入狀態
+  // ==========================================
+  if (data.action === "updateStats") {
+     if (sheetStats) {
+       var allStats = sheetStats.getDataRange().getValues();
+       var found = false;
+       for (var j = 1; j < allStats.length; j++) {
+         if (allStats[j][0] === user) { 
+           sheetStats.getRange(j + 1, 2).setValue(data.lastLoginDate); 
+           sheetStats.getRange(j + 1, 3).setValue(data.streak);        
+           sheetStats.getRange(j + 1, 4).setValue(data.freezeTokens);  
+           found = true;
+           break;
+         }
+       }
+       if (!found) {
+         sheetStats.appendRow([user, data.lastLoginDate, data.streak, data.freezeTokens]);
+       }
+     }
+     return ContentService.createTextOutput(JSON.stringify({status: "success"})).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // ==========================================
+  // 3. 申請加入會員
+  // ==========================================
+  if (data.action === "applyMembership") {
+    var pendingSheet = ss.getSheetByName("Pending_Users");
+    
+    if (data.passcode.toUpperCase() !== "KHH") {
+      return ContentService.createTextOutput(JSON.stringify({status: "error", message: "通關密語錯誤！"})).setMimeType(ContentService.MimeType.JSON);
+    }
+    var pendingCount = pendingSheet.getLastRow() - 1;
+    if (pendingCount >= 20) {
+      return ContentService.createTextOutput(JSON.stringify({status: "error", message: "系統審核佇列已滿，請等候管理員清理。"})).setMimeType(ContentService.MimeType.JSON);
+    }
+    var today = new Date();
+    pendingSheet.appendRow([today, data.desiredId, data.email, data.reason, false]);
+    
+    return ContentService.createTextOutput(JSON.stringify({status: "success"})).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // ==========================================
+  // 4. 個人化設定中心 (已移除冗餘的 saveSystemConfig)
+  // ==========================================
+  if (data.action === "saveUserSettings") {
+    var membersSheet = ss.getSheetByName("Members_Settings");
+    var membersData = membersSheet.getDataRange().getValues();
+
+    for (var i = 1; i < membersData.length; i++) {
+      if (membersData[i][0] === data.user) {
+        
+        if (data.newPassword && data.newPassword.trim() !== "") {
+          if (membersData[i][1] !== data.oldPassword) {
+            return ContentService.createTextOutput(JSON.stringify({status: "error", message: "原密碼輸入錯誤，設定儲存失敗！"})).setMimeType(ContentService.MimeType.JSON);
+          }
+          membersSheet.getRange(i + 1, 2).setValue(data.newPassword);
+        }
+        
+        if (data.targetDate) membersSheet.getRange(i + 1, 3).setValue(data.targetDate);
+        membersSheet.getRange(i + 1, 4).setValue(data.aiMode);
+        
+        if (!data.aiMode && data.goals) {
+          membersSheet.getRange(i + 1, 5).setValue(data.goals.speaking);
+          membersSheet.getRange(i + 1, 6).setValue(data.goals.p1);
+          membersSheet.getRange(i + 1, 7).setValue(data.goals.p2);
+          membersSheet.getRange(i + 1, 8).setValue(data.goals.p3);
+          membersSheet.getRange(i + 1, 9).setValue(data.goals.p4);
+          membersSheet.getRange(i + 1, 10).setValue(data.goals.p5);
+          membersSheet.getRange(i + 1, 11).setValue(data.goals.p6);
+          membersSheet.getRange(i + 1, 12).setValue(data.goals.p7);
+        }
+
+        return ContentService.createTextOutput(JSON.stringify({status: "success"})).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    return ContentService.createTextOutput(JSON.stringify({status: "error", message: "找不到使用者資料"})).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // ==========================================
+  // 5. AI 聊天通道
+  // ==========================================
+  if (data.action === "chatGemini") {
+    var geminiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + AGENT_CONFIG.GEMINI_API_KEY;
+    
+    var externalKnowledge = "";
+    if (data.knowledgeDocId) {
+      try {
+        var doc = DocumentApp.openById(data.knowledgeDocId);
+        externalKnowledge = "\n\n【Reference Knowledge (Must use if relevant)】:\n" + doc.getBody().getText().substring(0, 2000);
+      } catch(e) {
+        Logger.log("無法讀取知識庫文件：" + e);
+      }
+    }
+
+    var payload = {
+      "systemInstruction": {
+        "parts": [{ "text": data.systemPrompt + externalKnowledge }]
+      },
+      "contents": data.history
+    };
+
+    var options = { "method": "post", "contentType": "application/json", "payload": JSON.stringify(payload), "muteHttpExceptions": true };
+
+    try {
+      var response = UrlFetchApp.fetch(geminiUrl, options);
+      var json = JSON.parse(response.getContentText());
+      if (json.candidates && json.candidates.length > 0) {
+        return ContentService.createTextOutput(JSON.stringify({status: "success", reply: json.candidates[0].content.parts[0].text})).setMimeType(ContentService.MimeType.JSON);
+      }
+    } catch (e) {
+      return ContentService.createTextOutput(JSON.stringify({status: "error", message: e.toString()})).setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+
+  // ==========================================
+  // 6. 跨裝置雲端同步 (Daily_Progress)
+  // ==========================================
+  if (data.action === "syncDailyProgress") {
+    var progressSheet = ss.getSheetByName("Daily_Progress");
+    
+    // 防呆：如果尚未建立此表，自動初始化
+    if (!progressSheet) {
+      progressSheet = ss.insertSheet("Daily_Progress");
+      progressSheet.appendRow(["Date", "User", "Unit", "Daily_XP", "CompletedCount"]);
+      progressSheet.getRange("A1:E1").setFontWeight("bold").setBackground("#f39c12");
+      progressSheet.setFrozenRows(1);
+    }
+
+    var todayStr = data.date || Utilities.formatDate(new Date(), "GMT+8", "yyyy-MM-dd");
+    var targetUser = data.user;
+    var targetUnit = data.unit; // 例如: "Speaking", "Part1", "Part2"...
+    var newXP = parseInt(data.xp) || 0;
+    var newCount = parseInt(data.completedCount) || 0;
+
+    if (!targetUser || !targetUnit) {
+       return ContentService.createTextOutput(JSON.stringify({status: "error", message: "缺少必要參數"})).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // 加入鎖定機制，防止高併發產生重複列 (Apps Script 特性)
+    var lock = LockService.getScriptLock();
+    try {
+      lock.waitLock(5000);
+      var pData = progressSheet.getDataRange().getValues();
+      var foundRow = -1;
+
+      // 反向尋找，效能較佳，且取最新的覆寫
+      for (var i = pData.length - 1; i >= 1; i--) {
+        if (pData[i][0] == todayStr && pData[i][1] == targetUser && pData[i][2] == targetUnit) {
+          foundRow = i + 1;
+          break;
+        }
+      }
+
+      if (foundRow !== -1) {
+        progressSheet.getRange(foundRow, 4).setValue(newXP);
+        progressSheet.getRange(foundRow, 5).setValue(newCount);
+      } else {
+        progressSheet.appendRow([todayStr, targetUser, targetUnit, newXP, newCount]);
+      }
+    } catch (e) {
+      return ContentService.createTextOutput(JSON.stringify({status: "error", message: "同步鎖定超時，請稍後重試。"})).setMimeType(ContentService.MimeType.JSON);
+    } finally {
+      lock.releaseLock();
+    }
+
+    return ContentService.createTextOutput(JSON.stringify({status: "success"})).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // 若無符合 Action 則回傳防呆錯誤
+  return ContentService.createTextOutput(JSON.stringify({status: "error", message: "未知的 API 請求"})).setMimeType(ContentService.MimeType.JSON);
+}
+
+// ==========================================================
+// 🎯 階段八：AI 每日學習目標智慧分配員 (AI_Mode)
+// ==========================================================
+
+function runAgent_Daily_Allocator() {
+  Logger.log("🤖 啟動每日學習目標智慧分配 (AI_Mode 動態平衡)...");
+  
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var membersSheet = ss.getSheetByName("Members_Settings");
+  var progressSheet = ss.getSheetByName("User_Progress"); 
+
+  if (!membersSheet) return;
+
+  var membersData = membersSheet.getDataRange().getValues();
+  var progressData = progressSheet ? progressSheet.getDataRange().getValues() : [];
+
+  for (var i = 1; i < membersData.length; i++) {
+    var user = membersData[i][0];
+    var aiMode = membersData[i][3]; // 檢查 D 欄是否開啟 AI_Mode
+    var currentLevel = parseInt(membersData[i][13]) || 1;
+
+    if (aiMode === true || aiMode === "TRUE") {
+      // 1. 抓取使用者的學習記憶 EaseFactor 平均值 (分析學習抗性)
+      var totalEF = 0;
+      var countEF = 0;
+      for (var p = 1; p < progressData.length; p++) {
+        if (progressData[p][1] === user) {
+          totalEF += parseFloat(progressData[p][6]) || 2.5; // EaseFactor 在第 7 欄 (索引 6)
+          countEF++;
+        }
+      }
+      var avgEF = countEF > 0 ? (totalEF / countEF) : 2.5;
+
+      // 2. 能量池 (EP) 計算：等級越高，基礎體力越強
+      var baseGoal = 10 + Math.floor(currentLevel / 5);
+
+      // 3. 難度動態調節器
+      // 若 EaseFactor > 2.5，代表覺得輕鬆，加重題目量
+      // 若 EaseFactor < 2.5，代表覺得吃力，減少目標讓大腦休息
+      var multiplier = (avgEF / 2.5);
+      var dynamicGoal = Math.max(5, Math.floor(baseGoal * multiplier)); // 最低保底 5 題
+
+      // 4. 自動分配各單元題數 (Part2 簡單可多做，Part6/7 長文折半)
+      var goalSpeaking = dynamicGoal;
+      var goalP1 = dynamicGoal;
+      var goalP2 = Math.floor(dynamicGoal * 1.5); 
+      var goalP3 = dynamicGoal;
+      var goalP4 = dynamicGoal;
+      var goalP5 = Math.floor(dynamicGoal * 1.2);
+      var goalP6 = Math.max(2, Math.floor(dynamicGoal / 3)); 
+      var goalP7 = Math.max(2, Math.floor(dynamicGoal / 3)); 
+
+      // 5. 寫回 Members_Settings (欄位 E 到 L)
+      membersSheet.getRange(i + 1, 5).setValue(goalSpeaking);
+      membersSheet.getRange(i + 1, 6).setValue(goalP1);
+      membersSheet.getRange(i + 1, 7).setValue(goalP2);
+      membersSheet.getRange(i + 1, 8).setValue(goalP3);
+      membersSheet.getRange(i + 1, 9).setValue(goalP4);
+      membersSheet.getRange(i + 1, 10).setValue(goalP5);
+      membersSheet.getRange(i + 1, 11).setValue(goalP6);
+      membersSheet.getRange(i + 1, 12).setValue(goalP7);
+
+      Logger.log(`✅ [${user}] 目標更新完成！平均抗性: ${avgEF.toFixed(2)} | 基準目標量: ${dynamicGoal}`);
+    }
+  }
+  Logger.log("🎯 全局 AI_Mode 玩家配額分配完畢。");
+}
+
+// ==========================================================
+// 🤖 階段二：生產線總監 Agent - 自動讀 PDF 產出 Part 5 題庫
+// ==========================================================
+
+const AGENT_CONFIG = {
+  GEMINI_API_KEY: PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY'), 
+  TARGET_SHEET_NAME: "TOEIC_Bank",
+  LEDGER_SHEET_NAME: "Master_Ledger" // 🌟 核心 1：新增大腦工作表名稱
+  // 🌟 移除了 SOURCE_FOLDER_ID 和 DONE_FOLDER_ID，不再需要搬檔案！
+};
+
+// 🤖 升級版：生產線總監 Agent - 斷點續傳、動態防重、全自動排程
+function runAgent_PDF_to_Part5(targetID = null) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(AGENT_CONFIG.TARGET_SHEET_NAME);
+  const ledgerSheet = ss.getSheetByName(AGENT_CONFIG.LEDGER_SHEET_NAME);
+  if (!sheet || !ledgerSheet) return;
+
+  const MAX_TARGET_ROUND = 3; 
+  const ledgerData = ledgerSheet.getDataRange().getValues();
+  const headers = ledgerData[0];
+  const fileIdIdx = headers.indexOf("FileID");
+  const fileNameIdx = headers.indexOf("FileName");
+  const statusIdx = headers.indexOf("Part5_Status");
+
+  const startTime = new Date().getTime();
+  const MAX_EXECUTION_TIME = 4.5 * 60 * 1000;
+
+  let minScore = MAX_TARGET_ROUND;
+  for (let i = 1; i < ledgerData.length; i++) {
+    let s = parseFloat(ledgerData[i][statusIdx]);
+    if (!isNaN(s) && s < minScore) minScore = s;
+  }
+
+  if (minScore >= MAX_TARGET_ROUND) {
+    Logger.log("😴 所有多益 Part 5 素材皆已達到最大提煉輪次。");
+    return;
+  }
+
+  for (let i = 1; i < ledgerData.length; i++) {
+    let row = ledgerData[i];
+    let fileId = row[fileIdIdx];
+    let fileName = row[fileNameIdx];
+    let usageScore = parseFloat(row[statusIdx]); 
+
+    if (usageScore === minScore && fileId) {
+      Logger.log(`📄 鎖定多益目標 [${fileName}]，執行第 ${Math.floor(usageScore) + 1} 輪出題任務...`);
+
+      let pdfText = extractTextFromFile(fileId);
+      if (!pdfText) continue;
+
+      let totalLength = pdfText.length;
+      let passCount = Math.floor(usageScore);
+      let progress = usageScore - passCount;
+      let startIndex = Math.floor(progress * totalLength);
+
+      let chunkSize = 2500;
+      let isTimeout = false;
+      let currentIndex = startIndex;
+
+      // --- 取得目前 P5 最大 ID ---
+      let currentMaxId = getMaxId(sheet, "P5-");
+
+      let totalQuestionsGenerated = 0;
+
+      for (currentIndex = startIndex; currentIndex < totalLength; currentIndex += chunkSize) {
+        if (new Date().getTime() - startTime > MAX_EXECUTION_TIME) {
+          isTimeout = true;
+          break;
+        }
+
+        let chunkText = pdfText.substring(currentIndex, currentIndex + chunkSize);
+
+        let questionsData = generatePart5FromGemini(chunkText, passCount);
+        
+        if (questionsData && questionsData.length > 0) {
+          questionsData.forEach(q => {
+            let newId;
+
+            if (targetID) {
+              // 情況 A：QA 稽核員有傳入缺號，優先把這題塞進這個洞裡
+              newId = targetID;
+              targetID = null; // ⚠️ 用過即銷毀！確保下一題不會重複用到同一個 ID
+            } else {
+              // 情況 B：沒有缺號，或者缺號剛剛已經被填補了，恢復正常遞增
+              currentMaxId++;
+              newId = "P5-" + currentMaxId.toString().padStart(6, '0');
+            }
+            sheet.appendRow([
+              newId, "Part5", q.TestPoint, q.Type, "", "", q.Question,
+              q.Option_A, q.Option_B, q.Option_C, q.Option_D,
+              q.Correct_Answer, q.Translation, q.Analysis
+            ]);
+            totalQuestionsGenerated++;
+          });
+        }
+        if (currentIndex + chunkSize < totalLength) Utilities.sleep(15000); 
+      }
+
+      let newUsageScore = 0;
+      if (isTimeout) {
+        newUsageScore = passCount + (currentIndex / totalLength);
+      } else {
+        newUsageScore = passCount + 1.0;
+        Logger.log(`✅ Part 5 提煉結束，共產出 ${totalQuestionsGenerated} 題。分數更新為：${newUsageScore}`);
+      }
+      ledgerSheet.getRange(i + 1, statusIdx + 1).setValue(newUsageScore.toFixed(4));
+      if (isTimeout) break;
+    }
+  }
+}
+
+// --- 🌟 升級版內置黑科技：統一讀取 PDF 與 Google Docs ---
+// 🌟 修正位置：全域共用函數 extractTextFromFile (OCR 暫存檔殘留與死迴圈漏洞修復)
+function extractTextFromFile(fileId) {
+  let tempDocId = null; // 宣告在 try 外部，供 finally 區塊讀取
+  try {
+    let file = DriveApp.getFileById(fileId);
+    let mimeType = file.getMimeType();
+
+    // 處理爬蟲抓回來的 Google Docs 新聞
+    if (mimeType === MimeType.GOOGLE_DOCS) {
+      return DocumentApp.openById(fileId).getBody().getText();
+    }
+    
+    // 處理上傳的 PDF 雜誌 (使用 OCR 轉換)
+    if (mimeType === MimeType.PDF) {
+      let blob = file.getBlob();
+      // 🌟 修正 A：同時兼容 Drive API v2 (title) 與 v3 (name)，避免產生 Untitled 檔案
+      let resource = { 
+        title: "temp_ocr_" + file.getName(), 
+        name: "temp_ocr_" + file.getName(),
+        mimeType: MimeType.GOOGLE_DOCS 
+      };
+      
+      let docFile = Drive.Files.create(resource, blob, { ocr: true, ocrLanguage: 'en' });
+      tempDocId = docFile.id; // 記錄 ID
+
+      let text = DocumentApp.openById(tempDocId).getBody().getText();
+      return text;
+    }
+    
+    return ""; 
+  } catch (e) {
+    Logger.log("❌ 讀取文件失敗: " + e.toString());
+    return null;
+  } finally {
+    // 🌟 修正 B：利用 finally 確保不管文字提取成功或中途報錯，都強制執行刪除動作
+    // 🌟 修正 C：改用原生 DriveApp 丟入垃圾桶，迴避 Advanced API 版本差異導致的刪除報錯
+    if (tempDocId) {
+      try {
+        DriveApp.getFileById(tempDocId).setTrashed(true);
+      } catch (delErr) {
+        Logger.log("⚠️ 暫存檔清除失敗: " + delErr.toString());
+      }
+    }
+  }
+}
+
+// --- 內置 AI 引擎：攜帶多益大師 Prompt 呼叫 Gemini ---
+// 🌟 核心 7：新增接收參數 blacklistedConcepts 和 restrictPrompt
+function generatePart5FromGemini(shortText, passCount) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${AGENT_CONFIG.GEMINI_API_KEY}`;
+
+  let missionPrompt = "";
+  if (passCount === 0) {
+    missionPrompt = "【🔥 任務階段：核心基礎題】請評估文章，找出最重要、最核心的單字與基本詞性判斷，設計標準的多益單字/文法挖空選擇題。";
+  } else if (passCount === 1) {
+    missionPrompt = "【🚀 任務階段：衍生變化題】核心觀念已被抽取。本次請聚焦於同一個考點的『詞性變換延伸』、或使用『全新職場商業情境』設計變化題，強化學生的靈活應變能力。";
+  } else {
+    missionPrompt = "【🛡️ 任務階段：高階干擾題】請鎖定進階介系詞、易混淆字、動詞時態陷阱、慣用語，並設計高強度的「干擾選項（Distractors）」，打造具備高度拉扯感的考題。";
+  }
+
+  const prompt = `
+  你是一位極致嚴謹的多益出題官。請閱讀下方的【文章素材】，並遵循當前設定的任務階段目標。
+
+  🎯 當前任務目標：${missionPrompt}
+
+  請針對鎖定的每個考點，連續產出組裝 3 道題目（實施 1 原文題 + 2 變化題 的黃金比例）：
+  - 第 1 題：挖空素材中的句子（Type: 原文題）。
+  - 第 2 題：使用全新商業職場情境（Type: 變化題）。
+  - 第 3 題：使用另一個全新商業情境（Type: 變化題）。
+
+  【JSON 格式要求】
+  請直接輸出純 JSON 陣列：
+  [
+    {
+      "TestPoint": "單字語意/詞性判斷/介系詞與連接詞/動詞時態與語態/慣用語與片語",
+      "Type": "原文題 或 變化題",
+      "Question": "題幹文字 (必須包含底線 ______ )",
+      "Option_A": "選項A", "Option_B": "選項B", "Option_C": "選項C", "Option_D": "選項D",
+      "Correct_Answer": "A/B/C/D",
+      "Translation": "必須提供完整中文翻譯，並列出四個選項的詞性與中文意思",
+      "Analysis": "解析內容 (嚴禁出現選項字母A/B/C/D，請直接引用單字或文法邏輯說明)"
+      
+    }
+  ]
+
+  【文章素材】
+  ${shortText}
+  `;
+
+  const payload = { "contents": [{ "parts": [{"text": prompt}] }], "generationConfig": { "responseMimeType": "application/json" } };
+  const options = { "method": "post", "contentType": "application/json", "payload": JSON.stringify(payload), "muteHttpExceptions": true };
+
+  const maxRetries = 3;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      let response = UrlFetchApp.fetch(url, options);
+      let json = JSON.parse(response.getContentText());
+      if (json.candidates && json.candidates.length > 0) {
+        return JSON.parse(json.candidates[0].content.parts[0].text.replace(/```json/g, "").replace(/```/g, "").trim());
+      }
+      if (json.error && (json.error.code === 429 || json.error.code === 503)) {
+        if (attempt < maxRetries) { Utilities.sleep(10000); continue; }
+      }
+    } catch (e) { return null; }
+  }
+  return null;
+}
+// ==========================================================
+// 🎙️ 階段二：口說特訓專家 Agent - 擷取對話產出跟讀卡片
+// ==========================================================
+
+const SPEAKING_AGENT_CONFIG = {
+  GEMINI_API_KEY: AGENT_CONFIG.GEMINI_API_KEY, 
+  TARGET_SHEET_NAME: "Flashcards",
+  LEDGER_SHEET_NAME: "Master_Ledger" // 🌟 指向大腦戰情室
+};
+
+function runAgent_PDF_to_Speaking(targetID = null) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SPEAKING_AGENT_CONFIG.TARGET_SHEET_NAME);
+  const ledgerSheet = ss.getSheetByName(SPEAKING_AGENT_CONFIG.LEDGER_SHEET_NAME);
+  if (!sheet || !ledgerSheet) return;
+
+  const MAX_TARGET_ROUND = 3; // 🌟 未來想擴充到第 4 輪，直接改這裡即可！
+  const ledgerData = ledgerSheet.getDataRange().getValues();
+  const headers = ledgerData[0];
+  const fileIdIdx = headers.indexOf("FileID");
+  const fileNameIdx = headers.indexOf("FileName");
+  const statusIdx = headers.indexOf("Speaking_Status");
+
+  const startTime = new Date().getTime();
+  const MAX_EXECUTION_TIME = 4.5 * 60 * 1000;
+  
+  // 廣度優先：找出最低分數的檔案優先處理
+  let minScore = MAX_TARGET_ROUND;
+  for (let i = 1; i < ledgerData.length; i++) {
+    let s = parseFloat(ledgerData[i][statusIdx]);
+    if (!isNaN(s) && s < minScore) minScore = s;
+  }
+
+  if (minScore >= MAX_TARGET_ROUND) {
+    Logger.log("😴 所有口說素材皆已達到設定的最高提煉輪次。");
+    return;
+  }
+
+  for (let i = 1; i < ledgerData.length; i++) {
+    let row = ledgerData[i];
+    let fileId = row[fileIdIdx];
+    let fileName = row[fileNameIdx];
+    let usageScore = parseFloat(row[statusIdx]); 
+
+    if (usageScore === minScore && fileId) {
+      Logger.log(`🗣️ 鎖定目標 [${fileName}]，分配第 ${Math.floor(usageScore) + 1} 輪提煉任務...`);
+
+      let pdfText = extractTextFromFile(fileId);
+      if (!pdfText) continue;
+
+      let totalLength = pdfText.length;
+      let passCount = Math.floor(usageScore);
+      let progress = usageScore - passCount;
+      let startIndex = Math.floor(progress * totalLength);
+
+      let chunkSize = 2500;
+      let isTimeout = false;
+      let currentIndex = startIndex;
+
+      // --- 🌟 插入點開始：取得目前口說最大 ID (相容舊 E_ 與新 S-) ---
+      let currentMaxId = getMaxId(sheet, "S-");
+      
+      let totalSentencesGenerated = 0;
+
+      for (currentIndex = startIndex; currentIndex < totalLength; currentIndex += chunkSize) {
+        if (new Date().getTime() - startTime > MAX_EXECUTION_TIME) {
+          isTimeout = true;
+          break;
+        }
+
+        let chunkText = pdfText.substring(currentIndex, currentIndex + chunkSize);
+        let flashcardsData = generateSpeakingFromGemini(chunkText, passCount);
+        
+        if (flashcardsData && flashcardsData.length > 0) {
+          flashcardsData.forEach(q => {
+            let newId;
+
+            // 🌟 攔截缺號
+            if (targetID) {
+              newId = targetID;
+              targetID = null; // 銷毀紙條
+            } else {
+              currentMaxId++;
+              newId = "S-" + currentMaxId.toString().padStart(6, '0');
+            }
+
+            sheet.appendRow([ newId, q.tag, q.scenario_tw, q.context_tw, q.sentence_en ]);
+            totalSentencesGenerated++;
+          });
+        }
+        if (currentIndex + chunkSize < totalLength) Utilities.sleep(15000); 
+      }
+
+      // 結算進度
+      let newUsageScore = 0;
+      if (isTimeout) {
+        newUsageScore = passCount + (currentIndex / totalLength);
+        Logger.log(`⏳ 進度保留，完成輪次分數：${newUsageScore.toFixed(4)}`);
+      } else {
+        // 🌟 防白工機制：若此階段完全沒有產出任何題目，代表此輪提煉乾淨了，直接前進到下一階段
+        newUsageScore = passCount + 1.0;
+        Logger.log(`✅ 本輪提煉結束，共產出 ${totalSentencesGenerated} 題。分數更新為：${newUsageScore}`);
+      }
+      ledgerSheet.getRange(i + 1, statusIdx + 1).setValue(newUsageScore.toFixed(4));
+      if (isTimeout) break; 
+    }
+  }
+}
+
+function generateSpeakingFromGemini(shortText, passCount) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${SPEAKING_AGENT_CONFIG.GEMINI_API_KEY}`;
+  
+  // 🌟 動態任務指派：根據當前輪次切換 AI 視角提示詞
+  let missionPrompt = "";
+  if (passCount === 0) {
+    missionPrompt = "【🔥 任務階段：基礎錨點】請專注提取文章中最高頻、最實用的生活與商務基礎交流對話。著重於語感建立與日常流暢溝通。";
+  } else if (passCount === 1) {
+    missionPrompt = "【🚀 任務階段：情境衍生與道地升級】文章的基礎句已提煉。本次請專注尋找「道地口語片語 (Idioms)」、「動詞短語」或「複雜長句」。請將原句重新組裝成更道地、更具擴展性的進階職場/專案表達字卡。";
+  } else {
+    missionPrompt = "【🛡️ 任務階段：高階職場與危機談判】請深入挖掘或延伸文章情境，設計「高階意見表達、專案衝突、求助指引或危機處理」的情境字卡。句子必須符合母語人士在專業場合的溝通深度。";
+  }
+
+  const prompt = `
+  你是一位專業的母語人士口說教練。請閱讀下方的【文章素材】，並嚴格執行當前設定的任務階段目標。
+
+  🎯 當前任務目標：${missionPrompt}
+  
+  【出題任務】
+  請在一個 JSON 陣列中，產出符合上述階段深度的「口語跟讀實戰卡牌」：
+  1. 【原音重現】：從素材中挑選具有學習價值的有效句子，轉換為卡牌，並設定合理的說話情境。
+  2. 【實戰延伸】：抓出素材中的精華句型，為它們重新設計延伸情境卡牌，廣泛套用至職場、工程專案、差旅交通等。
+
+  【標籤嚴格限制 (Tag)】
+  請只能從以下 15 個標籤中挑選（不准自創）：
+  💼 職場溝通, 🏗️ 工程專案, ✈️ 差旅交通, 🏃 休閒運動, 💬 社交閒聊, 🏠 居家生活, 💻 科技數位, 🍔 旅遊餐飲, 🌍 國際時事, 🎵 藝文娛樂, 📈 財務金融, 📚 學習進修, 💍 婚慶典禮, 🆘 求助指引, 💡 意見表達
+
+  【JSON 格式要求】
+  請直接輸出純 JSON 陣列，不含 Markdown：
+  [
+    {
+      "tag": "填入上述 15 個標籤之一",
+      "scenario_tw": "用一句話描述這句話可以用在什麼時候",
+      "context_tw": "這句話的精準中文翻譯",
+      "sentence_en": "完整英文句子 (不要帶有角色名字)"
+    }
+  ]
+
+  【文章素材】
+  ${shortText}
+  `;
+
+  const payload = { "contents": [{ "parts": [{"text": prompt}] }], "generationConfig": { "responseMimeType": "application/json" } };
+  const options = { "method": "post", "contentType": "application/json", "payload": JSON.stringify(payload), "muteHttpExceptions": true };
+
+  try {
+    let response = UrlFetchApp.fetch(url, options);
+    let json = JSON.parse(response.getContentText());
+    if (json.candidates && json.candidates.length > 0) {
+      return JSON.parse(json.candidates[0].content.parts[0].text.replace(/```json/g, "").replace(/```/g, "").trim());
+    }
+  } catch (e) { return null; }
+  return null;
+}
+
+// ==========================================================
+// 👁️ 階段二：Part 1 影像辨識 Agent - 自動看圖產出 3 道聽力題
+// ==========================================================
+
+const PART1_AGENT_CONFIG = {
+  GEMINI_API_KEY: AGENT_CONFIG.GEMINI_API_KEY, 
+  TARGET_SHEET_NAME: "TOEIC_Bank",
+  LEDGER_SHEET_NAME: "Master_Ledger" 
+};
+
+function runAgent_Image_to_Part1(targetID = null) {
+  Logger.log("🚀 啟動 Part 1 影像辨識 Agent...");
+  
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ledgerSheet = ss.getSheetByName(PART1_AGENT_CONFIG.LEDGER_SHEET_NAME);
+  const sheet = ss.getSheetByName(PART1_AGENT_CONFIG.TARGET_SHEET_NAME);
+  if (!sheet || !ledgerSheet) return;
+
+  const MAX_TARGET_ROUND = 3; // 🌟 支援未來擴充
+  const ledgerData = ledgerSheet.getDataRange().getValues();
+  const headers = ledgerData[0];
+  const fileIdIdx = headers.indexOf("FileID");
+  const fileNameIdx = headers.indexOf("FileName");
+  const statusIdx = headers.indexOf("Part1_Status");
+  const conceptsIdx = headers.indexOf("Part1_Concepts"); // 🌟 把歷史紀錄點找回來了
+
+  const startTime = new Date().getTime();
+  const MAX_EXECUTION_TIME = 4.5 * 60 * 1000;
+
+  // 廣度優先：找出最低分數的圖片優先處理
+  let minScore = MAX_TARGET_ROUND;
+  for (let i = 1; i < ledgerData.length; i++) {
+    let s = parseFloat(ledgerData[i][statusIdx]);
+    if (!isNaN(s) && s < minScore) minScore = s;
+  }
+
+  if (minScore >= MAX_TARGET_ROUND) {
+    Logger.log("😴 所有 Part 1 圖片皆已達到最大提煉輪次。");
+    return;
+  }
+
+  for (let i = 1; i < ledgerData.length; i++) {
+    if (new Date().getTime() - startTime > MAX_EXECUTION_TIME) break; 
+
+    let row = ledgerData[i];
+    let fileId = row[fileIdIdx];
+    let fileName = row[fileNameIdx];
+    let usageScore = parseFloat(row[statusIdx]); 
+    let pastConcepts = row[conceptsIdx] || "";
+
+    if (usageScore === minScore && fileId) {
+      Logger.log(`👁️ 鎖定圖片目標 [${fileName}]，執行第 ${Math.floor(usageScore) + 1} 輪出題任務...`);
+
+      let file;
+      try {
+        file = DriveApp.getFileById(fileId);
+      } catch (e) {
+        Logger.log(`❌ 無法在雲端硬碟中找到檔案ID: ${fileId}`);
+        continue;
+      }
+
+      let imageBlob = file.getBlob();
+      let base64Image = Utilities.base64Encode(imageBlob.getBytes());
+      
+      let githubUrl = uploadToGitHub(file.getName(), base64Image);
+      if (!githubUrl) continue;
+      
+      let aiMimeType = fileName.endsWith('.png') ? 'image/png' : 'image/jpeg';
+      let passCount = Math.floor(usageScore);
+      
+      // --- 🌟 插入點開始：取得目前 P1 最大 ID ---
+      let currentMaxId = getMaxId(sheet, "P1-");
+      
+      // 呼叫更新版的 AI 引擎
+      let questionsData = generatePart1FromVision(base64Image, aiMimeType, passCount, pastConcepts);
+      let newConcepts = [];
+
+      if (questionsData && questionsData.length > 0) {
+        questionsData.forEach(q => {
+          let newId;
+
+          // 🌟 攔截缺號
+          if (targetID) {
+            newId = targetID;
+            targetID = null; // 銷毀紙條
+          } else {
+            currentMaxId++;
+            newId = "P1-" + currentMaxId.toString().padStart(6, '0');
+          }
+          sheet.appendRow([
+            newId, "Part1", q.TestPoint, q.Type, githubUrl, "", q.Question_Audio, 
+            q.Option_A, q.Option_B, q.Option_C, q.Option_D, 
+            q.Correct_Answer, q.Translation, q.Analysis
+          ]);
+          newConcepts.push(q.TestPoint);
+        });
+        Logger.log(`✅ 成功為圖片 [${fileName}] 產出 ${questionsData.length} 題聽力！`);
+        
+        let newUsageScore = passCount + 1.0;
+        ledgerSheet.getRange(i + 1, statusIdx + 1).setValue(newUsageScore.toFixed(4));
+        
+        // 🌟 軟性記憶：把這次找出的考點寫回戰情室，下次當參考
+        if (newConcepts.length > 0) {
+          let combined = pastConcepts ? pastConcepts.split(", ") : [];
+          combined = combined.concat(newConcepts);
+          let uniqueConcepts = [...new Set(combined)].join(", ");
+          ledgerSheet.getRange(i + 1, conceptsIdx + 1).setValue(uniqueConcepts);
+        }
+      } else {
+        // 防呆：如果圖片真的沒東西可以出了，強制給滿分
+        Logger.log(`⚠️ 圖片 [${fileName}] 在本輪已榨不出新視角，標記為滿分淘汰。`);
+        ledgerSheet.getRange(i + 1, statusIdx + 1).setValue(MAX_TARGET_ROUND.toFixed(4));
+      }
+      
+      break; // 為了避免超時，Part 1 一次排程只處理一張圖片
+    }
+  }
+}
+
+// --- 內置 AI 引擎：攜帶多益大師 Prompt 呼叫 Gemini (具備自動重試機制) ---
+function generatePart1FromVision(base64Image, mimeType, passCount, pastConcepts) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${PART1_AGENT_CONFIG.GEMINI_API_KEY}`;
+  
+  // 🌟 動態任務指派：根據輪次給予不同的觀察視角
+  let missionPrompt = "";
+  if (passCount === 0) {
+    missionPrompt = "【🔥 任務階段：核心主體】針對照片中「最明顯的主體人物動作或狀態」進行描述。Type 必須為『原文題』。";
+  } else if (passCount === 1) {
+    missionPrompt = "【🚀 任務階段：背景與細節】『請忽略最明顯的主角』，專注考查照片中的「背景細節、物品擺放位置或無人狀態」。Type 必須為『變化題-背景』。";
+  } else {
+    missionPrompt = "【🛡️ 任務階段：高階干擾】請設計陷阱題。使用照片中出現的物品，但套用「錯誤的動作」，或利用發音相似字作為強烈干擾。Type 必須為『變化題-干擾』。";
+  }
+
+  // 🌟 軟性記憶提醒 (不是絕對封殺，而是建議 AI 找新的)
+  let referencePrompt = pastConcepts ? `【系統紀錄】前幾輪已出過這些考點：[ ${pastConcepts} ]。請盡量發掘照片中其他未被提及的全新細節。` : "";
+
+  const prompt = `
+  你是一位專業的多益聽力出題專家。請仔細觀察我提供的這張照片中的人物動作、物品擺設與背景細節。
+  請嚴格遵循「一圖三練」原則，幫我產出 3 道 Part 1 聽力題目。
+
+  🎯 當前任務目標：${missionPrompt}
+  ${referencePrompt}
+
+  【格式限制】
+  - 考點標籤 (TestPoint) 請精確填寫該題考驗的物品或動作名稱 (例如: Projector, Writing on a board, Folded chairs)。
+  - Question_Audio 欄位必須包含讓系統朗讀的完整英文內容。
+
+  【JSON 格式要求】
+  請直接輸出純 JSON 陣列，絕對不可遺漏任何 key，嚴禁 Markdown 標記：
+  [
+    {
+      "TestPoint": "人物動作/物品狀態與位置",
+      "Type": "原文題 或 變化題-背景 或 變化題-干擾",
+      "Question_Audio": "Look at the picture. (A) ... (B) ... (C) ... (D) ...",
+      "Option_A": "題目選項A內容(英文，禁止出現中文)", "Option_B": "題目選項B內容(英文，禁止出現中文)", "Option_C": "題目選項C內容(英文，禁止出現中文)", "Option_D": "題目選項D內容(英文，禁止出現中文)",
+      "Correct_Answer": "A/B/C/D",
+      "Translation": "【嚴禁留空】四個選項的完整中文翻譯",
+      "Analysis": "解析內容 (說明為何正確，以及干擾選項的陷阱在哪)"
+    }
+  ]
+  `;
+
+  const payload = {
+    "contents": [{"parts": [{"text": prompt}, {"inlineData": {"mimeType": mimeType, "data": base64Image}}]}],
+    "generationConfig": { "responseMimeType": "application/json" }
+  };
+
+  const options = {
+    "method": "post", "contentType": "application/json",
+    "payload": JSON.stringify(payload), "muteHttpExceptions": true
+  };
+
+  const maxRetries = 3;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      let response = UrlFetchApp.fetch(url, options);
+      let json = JSON.parse(response.getContentText());
+      if (json.candidates && json.candidates.length > 0) {
+        let resultString = json.candidates[0].content.parts[0].text.replace(/```json/g, "").replace(/```/g, "").trim();
+        let parsedData = JSON.parse(resultString);
+        parsedData = parsedData.map(q => {
+          if (!q.Translation) q.Translation = "⚠️ AI 遺漏翻譯，請手動查閱。";
+          return q;
+        });
+        return parsedData;
+      } 
+      if (json.error && (json.error.code === 503 || json.error.code === 429)) {
+        if (attempt < maxRetries) { Utilities.sleep(5000); continue; }
+      }
+    } catch (e) { return null; }
+  }
+  return null;
+}
+
+// --- 輔助功能：自動上傳圖片到 GitHub (具備衝突豁免) ---
+function uploadToGitHub(filename, base64Content) {
+  const token = PropertiesService.getScriptProperties().getProperty('GITHUB_TOKEN');
+  const repo = PropertiesService.getScriptProperties().getProperty('GITHUB_REPO');
+  
+  if (!token || !repo) {
+    Logger.log("❌ 未設定 GITHUB_TOKEN 或 GITHUB_REPO！");
+    return null;
+  }
+
+  const url = `https://api.github.com/repos/${repo}/contents/images/${filename}`;
+  const payload = { "message": "Upload image via Apps Script Agent", "content": base64Content };
+  const options = {
+    "method": "put", "contentType": "application/json",
+    "headers": { "Authorization": "token " + token, "User-Agent": "Google-Apps-Script" },
+    "payload": JSON.stringify(payload), "muteHttpExceptions": true
+  };
+
+  const response = UrlFetchApp.fetch(url, options);
+  const responseCode = response.getResponseCode();
+  
+  if (responseCode === 201 || responseCode === 200) {
+    return `https://github.com/${repo}/blob/main/images/${filename}?raw=true`;
+  } else if (responseCode === 422) {
+    Logger.log(`💡 提示：檔名 [${filename}] 已存在 GitHub，直接沿用舊網址出題！`);
+    return `https://github.com/${repo}/blob/main/images/${filename}?raw=true`;
+  } else {
+    Logger.log("❌ GitHub API 錯誤 (代碼 " + responseCode + ")：" + response.getContentText());
+    return null;
+  }
+}
+
+// ==========================================================
+// ⚡ 階段三：Part 2 瞬效聽解 Agent (對答生成)
+// ==========================================================
+
+const PART2_AGENT_CONFIG = {
+  GEMINI_API_KEY: AGENT_CONFIG.GEMINI_API_KEY, 
+  TARGET_SHEET_NAME: "TOEIC_Bank",
+  LEDGER_SHEET_NAME: "Master_Ledger"
+};
+
+function runAgent_Doc_to_Part2(targetID = null) {
+  Logger.log("⚡ 啟動 Part 2 瞬效聽解 Agent...");
+  
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(PART2_AGENT_CONFIG.TARGET_SHEET_NAME);
+  const ledgerSheet = ss.getSheetByName(PART2_AGENT_CONFIG.LEDGER_SHEET_NAME);
+  if (!sheet || !ledgerSheet) return;
+
+  const MAX_TARGET_ROUND = 3; 
+  const ledgerData = ledgerSheet.getDataRange().getValues();
+  const headers = ledgerData[0];
+  const fileIdIdx = headers.indexOf("FileID");
+  const fileNameIdx = headers.indexOf("FileName");
+  const statusIdx = headers.indexOf("Part2_Status");
+
+  // 1. 尋找最低分數 (最缺乏開採) 的素材
+  let minScore = MAX_TARGET_ROUND;
+  for (let i = 1; i < ledgerData.length; i++) {
+    let s = parseFloat(ledgerData[i][statusIdx]);
+    if (!isNaN(s) && s < minScore) minScore = s;
+  }
+
+  if (minScore >= MAX_TARGET_ROUND) {
+    Logger.log("😴 所有素材的 Part 2 提煉皆已達上限。");
+    return;
+  }
+
+  // 2. 鎖定目標並執行開採
+  for (let i = 1; i < ledgerData.length; i++) {
+    let fileId = ledgerData[i][fileIdIdx];
+    let fileName = ledgerData[i][fileNameIdx];
+    let usageScore = parseFloat(ledgerData[i][statusIdx]);
+
+    if (usageScore === minScore && fileId) {
+      Logger.log(`⚡ 鎖定目標 [${fileName}]，執行第 ${Math.floor(usageScore) + 1} 輪 Part 2 出題...`);
+
+      let textContent = "";
+      try {
+        // 從戰情室讀取 Google Doc 內文
+        // 🌟 修正：呼叫黑科技，將 PDF 高精度轉為文字
+        textContent = extractTextFromFile(fileId);
+      } catch(e) {
+        Logger.log(`❌ 讀取文件失敗 [${fileName}]，可能非 Google Doc 格式。跳過此檔。`);
+        // 強制將無法讀取的檔案分數填滿，避免無限卡死
+        ledgerSheet.getRange(i + 1, statusIdx + 1).setValue(MAX_TARGET_ROUND.toFixed(4));
+        continue;
+      }
+
+      if (!textContent || textContent.length < 100) continue;
+
+      let passCount = Math.floor(usageScore);
+      
+      // 取前 3000 字節省 Token，對 Part 2 擷取情境已足夠
+      let questionsData = generatePart2FromGemini(textContent.substring(0, 3000), passCount);
+
+      if (questionsData && questionsData.length > 0) {
+        let currentMaxId = getMaxId(sheet, "P2-"); 
+        
+        questionsData.forEach(q => {
+          let newId;
+
+          // 🌟 攔截缺號
+          if (targetID) {
+            newId = targetID;
+            targetID = null; // 銷毀紙條
+          } else {
+            currentMaxId++;
+            newId = "P2-" + currentMaxId.toString().padStart(6, '0');
+          }
+          sheet.appendRow([
+            newId, "Part2", q.TestPoint, "原文題", "", "", q.Question_Audio,
+            q.Option_A, q.Option_B, q.Option_C, "", // 🌟 Option_D 強制留空
+            q.Correct_Answer, q.Translation, q.Analysis
+          ]);
+        });
+        
+        Logger.log(`✅ 成功產出 ${questionsData.length} 題 Part 2！`);
+        let newUsageScore = passCount + 1.0;
+        ledgerSheet.getRange(i + 1, statusIdx + 1).setValue(newUsageScore.toFixed(4));
+      } else {
+        Logger.log(`⚠️ 此素材已無法產出有效的 Part 2 題型，標記淘汰。`);
+        ledgerSheet.getRange(i + 1, statusIdx + 1).setValue(MAX_TARGET_ROUND.toFixed(4)); 
+      }
+      break; // 每次排程只處理一篇，避免逾時
+    }
+  }
+}
+
+// --- 核心 AI 引擎：產出 Part 2 專屬格式 ---
+function generatePart2FromGemini(text, passCount) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${PART2_AGENT_CONFIG.GEMINI_API_KEY}`;
+  
+  let missionPrompt = "";
+  if (passCount === 0) {
+    missionPrompt = "【🔥 任務階段：明確資訊問句 (Wh- Questions)】請利用文章中的人、事、時、地、物，設計 Who, What, Where, When, Why, How 開頭的疑問句。干擾選項請使用「回答錯誤疑問詞」的陷阱（例如問 When 卻回答地點）。";
+  } else if (passCount === 1) {
+    missionPrompt = "【🚀 任務階段：封閉與選擇問句 (Yes/No & Alternative)】請設計 Yes/No 問句或「A 還是 B」的選擇句。正確答案請盡量使用『間接回答』（例如：Do you want coffee or tea? 正確答案是：I already had some.），增加難度。";
+  } else {
+    missionPrompt = "【🛡️ 任務階段：高階直述句 (Statements)】請設計「非問句」的題幹。題幹是一句陳述（例如：This room is very cold. 或 The printer is broken.），正確選項必須是合理的回應或提供解決方案。這是多益最難的題型。";
+  }
+
+  const prompt = `
+  你是一位專業的多益聽力出題官。請閱讀下方的【文章素材】，提煉出合適的商業或日常情境，設計 3 道「多益 Part 2 (應答問題)」的測驗題。
+
+  🎯 當前任務目標：${missionPrompt}
+
+  【出題絕對禁忌與規範】
+  1. Part 2 只有 3 個選項！請設計 1 個正確選項與 2 個強烈干擾選項 (A, B, C)。
+  2. 題目與選項必須是「口語對話」，簡短且符合英美人士習慣，絕不可又臭又長。
+  3. "Option_D" 欄位請務必保持為空白字串 ""。
+  
+  【JSON 格式要求】(直接輸出 JSON 陣列，嚴禁 Markdown)
+  [
+    {
+      "TestPoint": "考點標籤 (如：When問句 / 直述句 / 提出建議)",
+      "Question_Audio": "題幹問句或直述句的英文",
+      "Option_A": "選項 A 的英文",
+      "Option_B": "選項 B 的英文",
+      "Option_C": "選項 C 的英文",
+      "Option_D": "",
+      "Correct_Answer": "A/B/C",
+      "Translation": "【嚴禁留空】必須包含題幹與 A,B,C 選項的完整中文翻譯",
+      "Analysis": "解析內容 (說明為何正確，以及干擾選項的陷阱)"
+    }
+  ]
+
+  【文章素材】
+  ${text}
+  `;
+
+  const payload = { "contents": [{ "parts": [{"text": prompt}] }], "generationConfig": { "responseMimeType": "application/json" } };
+  const options = { "method": "post", "contentType": "application/json", "payload": JSON.stringify(payload), "muteHttpExceptions": true };
+
+  const maxRetries = 3;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      let response = UrlFetchApp.fetch(url, options);
+      let json = JSON.parse(response.getContentText());
+      if (json.candidates && json.candidates.length > 0) {
+        return JSON.parse(json.candidates[0].content.parts[0].text.replace(/```json/g, "").replace(/```/g, "").trim());
+      }
+    } catch (e) {
+      if (attempt < maxRetries) Utilities.sleep(5000);
+    }
+  }
+  return null;
+}
+
+
+// ==========================================================
+// 🎧 階段三：Part 3 & 4 聽力題組 Agent (對話與獨白生成)
+// ==========================================================
+
+function runAgent_Doc_to_Part3() { processListeningGroupAgent("Part3",null); }
+function runAgent_Doc_to_Part4() { processListeningGroupAgent("Part4",null); }
+
+function processListeningGroupAgent(targetPart,targetID = null) {
+  Logger.log(`🎧 啟動 ${targetPart} 聽力題組 Agent...`);
+  
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName("TOEIC_Bank");
+  const ledgerSheet = ss.getSheetByName("Master_Ledger");
+  if (!sheet || !ledgerSheet) return;
+
+  const MAX_TARGET_ROUND = 3; 
+  const statusColName = targetPart + "_Status";
+  const ledgerData = ledgerSheet.getDataRange().getValues();
+  const headers = ledgerData[0];
+  const fileIdIdx = headers.indexOf("FileID");
+  const fileNameIdx = headers.indexOf("FileName");
+  const statusIdx = headers.indexOf(statusColName);
+
+  let minScore = MAX_TARGET_ROUND;
+  for (let i = 1; i < ledgerData.length; i++) {
+    let s = parseFloat(ledgerData[i][statusIdx]);
+    if (!isNaN(s) && s < minScore) minScore = s;
+  }
+
+  if (minScore >= MAX_TARGET_ROUND) return;
+
+  for (let i = 1; i < ledgerData.length; i++) {
+    let fileId = ledgerData[i][fileIdIdx];
+    let fileName = ledgerData[i][fileNameIdx];
+    let usageScore = parseFloat(ledgerData[i][statusIdx]);
+
+    if (usageScore === minScore && fileId) {
+      Logger.log(`🎧 鎖定目標 [${fileName}]，執行 ${targetPart} 題組提煉...`);
+
+      let textContent = "";
+      try {
+        // 🌟 修正：呼叫黑科技，將 PDF 高精度轉為文字
+        textContent = extractTextFromFile(fileId);
+      } catch(e) {
+        ledgerSheet.getRange(i + 1, statusIdx + 1).setValue(MAX_TARGET_ROUND.toFixed(4));
+        continue;
+      }
+
+      if (!textContent || textContent.length < 150) continue;
+
+      let passCount = Math.floor(usageScore);
+      let generatedData = generateListeningGroupFromGemini(textContent.substring(0, 3000), targetPart, passCount);
+
+      if (generatedData && generatedData.questions && generatedData.questions.length > 0) {
+        let prefix = targetPart === "Part3" ? "P3-" : "P4-";
+        let maxId = getMaxId(sheet, prefix); 
+        let newId;
+        // 🌟 攔截缺號
+        if (targetID) {
+          newId = targetID;
+          targetID = null; // 銷毀紙條
+         } else {
+          maxId++;
+          newId = prefix + maxId.toString().padStart(6, '0');
+        }
+        
+        let graphicHtml = "";
+        if (generatedData.graphic_html && generatedData.graphic_html.trim() !== "") {
+            graphicHtml = `<div style="padding:10px; background:#fff; border:2px solid #bdc3c7; border-radius:8px; margin-bottom:10px; font-size:0.9rem;">${generatedData.graphic_html}</div>`;
+        }
+
+        let groupQuestionsJSON = JSON.stringify(generatedData.questions);
+        let transcript = generatedData.transcript; // 提取朗讀用的劇本
+        let transcriptTrans = generatedData.transcript_translation || "⚠️ AI 遺漏劇本翻譯"; // 🌟 新增抓取劇本翻譯
+
+        // 🌟 寫入資料庫 (將劇本存入 Question_Audio，圖表存入 Context_Article，翻譯放入 Translation)
+        sheet.appendRow([
+          newId, targetPart, "聽力題組", "題組題", "", graphicHtml, transcript,
+          groupQuestionsJSON, "", "", "", "", transcriptTrans, "" // 🌟 第13個欄位寫入劇本翻譯
+        ]);
+        
+        Logger.log(`✅ 成功產出 1 篇 ${targetPart} 題組！`);
+        let newUsageScore = passCount + 1.0;
+        ledgerSheet.getRange(i + 1, statusIdx + 1).setValue(newUsageScore.toFixed(4));
+      } else {
+        ledgerSheet.getRange(i + 1, statusIdx + 1).setValue(MAX_TARGET_ROUND.toFixed(4)); 
+      }
+      break; 
+    }
+  }
+}
+
+// --- 核心 AI 引擎：產出 P3/P4 專屬格式 ---
+function generateListeningGroupFromGemini(text, partType, passCount) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${AGENT_CONFIG.GEMINI_API_KEY}`;
+  
+  let formatInstruction = partType === "Part3" 
+    ? "請將素材改寫為一段【2~3 人的職場對話 (Conversation)】。請使用 'M:' (男) 與 'W:' (女) 標示說話者交替。"
+    : "請將素材改寫為一段【單人獨白 (Talk/Monologue)】，例如廣播公告、電話留言或演講。";
+
+  let graphicInstruction = passCount >= 1 
+    ? "【⚠️ 視聽雙軌挑戰】請根據對話/獨白內容，設計一個對應的「圖表 (如：航班時刻表、收據、折價券、樓層圖)」，請用單純的 HTML <table> 格式呈現，並出 1 題必須看圖才能作答的題目。" 
+    : "本次不需要圖表，請專注於純聽力測驗。";
+
+  const prompt = `
+  你是一位專業的多益聽力出題官。請閱讀素材，設計一個符合「多益 ${partType}」標準的 3 題聽力題組。
+
+  🎯 當前任務：${formatInstruction}
+  📊 圖表指示：${graphicInstruction}
+
+  【出題規範】
+  1. 劇本 (Transcript) 長度約 100~150 字，必須口語化。
+  2. 必須設計 3 道聽力題目（包含主旨題、細節題，若有圖表則包含一題圖表比對題）。
+  ⚠️ 【翻譯強制令】：你必須提供全篇完整、通順的繁體中文翻譯，絕對不可遺漏、縮減或留空，否則系統將判定為無效產出。
+
+  【JSON 格式要求】(直接輸出 JSON 物件，嚴禁 Markdown)
+  {
+    "transcript": "在此填入英文劇本，例如 M: Hi, I need help... W: Sure... (將作為語音朗讀來源)",
+    "transcript_translation": "請提供整段對話或獨白的完整繁體中文翻譯。", // 🌟 新增此行
+    "graphic_html": "若有圖表，請填寫 HTML table 程式碼。若無則留空字串。",
+    "questions": [
+      {
+        "TestPoint": "主旨題 / 細節題 / 圖表題",
+        "Question": "聽力測驗題目",
+        "Option_A": "選項A", "Option_B": "選項B", "Option_C": "選項C", "Option_D": "選項D",
+        "Correct_Answer": "A/B/C/D",
+        "Translation": "四個選項與題幹的完整中文翻譯",
+        "Analysis": "解析內容"
+      } // 總共 3 題
+    ]
+  }
+
+  【素材】
+  ${text}
+  `;
+
+  const payload = { "contents": [{ "parts": [{"text": prompt}] }], "generationConfig": { "responseMimeType": "application/json" } };
+  const options = { "method": "post", "contentType": "application/json", "payload": JSON.stringify(payload), "muteHttpExceptions": true };
+
+  const maxRetries = 3;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      let response = UrlFetchApp.fetch(url, options);
+      let json = JSON.parse(response.getContentText());
+      if (json.candidates && json.candidates.length > 0) {
+        return JSON.parse(json.candidates[0].content.parts[0].text.replace(/```json/g, "").replace(/```/g, "").trim());
+      }
+    } catch (e) {
+      if (attempt < maxRetries) Utilities.sleep(5000);
+    }
+  }
+  return null;
+}
+
+// ==========================================================
+// 🧩 階段三：Part 6 段落填空 Agent (克漏字題組生成)
+// ==========================================================
+
+const PART6_AGENT_CONFIG = {
+  GEMINI_API_KEY: AGENT_CONFIG.GEMINI_API_KEY, 
+  TARGET_SHEET_NAME: "TOEIC_Bank",
+  LEDGER_SHEET_NAME: "Master_Ledger"
+};
+
+function runAgent_Doc_to_Part6(targetID = null) {
+  Logger.log("🧩 啟動 Part 6 段落填空 Agent...");
+  
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(PART6_AGENT_CONFIG.TARGET_SHEET_NAME);
+  const ledgerSheet = ss.getSheetByName(PART6_AGENT_CONFIG.LEDGER_SHEET_NAME);
+  if (!sheet || !ledgerSheet) return;
+
+  const MAX_TARGET_ROUND = 3; 
+  const ledgerData = ledgerSheet.getDataRange().getValues();
+  const headers = ledgerData[0];
+  const fileIdIdx = headers.indexOf("FileID");
+  const fileNameIdx = headers.indexOf("FileName");
+  const statusIdx = headers.indexOf("Part6_Status");
+
+  let minScore = MAX_TARGET_ROUND;
+  for (let i = 1; i < ledgerData.length; i++) {
+    let s = parseFloat(ledgerData[i][statusIdx]);
+    if (!isNaN(s) && s < minScore) minScore = s;
+  }
+
+  if (minScore >= MAX_TARGET_ROUND) return;
+
+  for (let i = 1; i < ledgerData.length; i++) {
+    let fileId = ledgerData[i][fileIdIdx];
+    let fileName = ledgerData[i][fileNameIdx];
+    let usageScore = parseFloat(ledgerData[i][statusIdx]);
+
+    if (usageScore === minScore && fileId) {
+      Logger.log(`🧩 鎖定目標 [${fileName}]，執行第 ${Math.floor(usageScore) + 1} 輪 Part 6 出題...`);
+
+      let textContent = "";
+      try {
+        // 🌟 修正：呼叫黑科技，將 PDF 高精度轉為文字
+        textContent = extractTextFromFile(fileId);
+      } catch(e) {
+        ledgerSheet.getRange(i + 1, statusIdx + 1).setValue(MAX_TARGET_ROUND.toFixed(4));
+        continue;
+      }
+
+      if (!textContent || textContent.length < 150) continue;
+
+      let passCount = Math.floor(usageScore);
+      let generatedData = generatePart6FromGemini(textContent.substring(0, 3000), passCount);
+
+      if (generatedData && generatedData.part6 && generatedData.part6.length > 0) {
+        let p6MaxId = getMaxId(sheet, "P6-"); 
+        let newId;
+
+        // 🌟 攔截缺號
+        if (targetID) {
+          newId = targetID;
+          targetID = null; // 銷毀紙條
+         } else {
+          p6MaxId++;
+          newId = "P6-" + p6MaxId.toString().padStart(6, '0');
+        }
+        
+        let articleHtml = `<div style="padding:15px; background:#fdfefe; border:1px solid #d5dbdb; border-radius:8px; font-family: sans-serif; line-height: 1.8;">${generatedData.article_html}</div>`;
+        let groupQuestionsJSON = JSON.stringify(generatedData.part6);
+        let articleTrans = generatedData.article_translation || "⚠️ AI 遺漏整篇翻譯"; // 🌟 新增抓取全篇翻譯
+
+        // 寫入資料庫，題組封裝至 Option_A，全篇翻譯放入 Translation 欄位
+        sheet.appendRow([
+          newId, "Part6", "段落填空題組", "題組題", "", articleHtml, "",
+          groupQuestionsJSON, "", "", "", 
+          "", articleTrans, "" // 🌟 第13個欄位寫入全篇翻譯
+        ]);
+        
+        Logger.log(`✅ 成功產出 1 篇 Part 6 題組 (內含 ${generatedData.part6.length} 題)！`);
+        let newUsageScore = passCount + 1.0;
+        ledgerSheet.getRange(i + 1, statusIdx + 1).setValue(newUsageScore.toFixed(4));
+      } else {
+        ledgerSheet.getRange(i + 1, statusIdx + 1).setValue(MAX_TARGET_ROUND.toFixed(4)); 
+      }
+      break; 
+    }
+  }
+}
+
+// --- 核心 AI 引擎：產出 Part 6 專屬格式 ---
+function generatePart6FromGemini(text, passCount) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${PART6_AGENT_CONFIG.GEMINI_API_KEY}`;
+  
+  // [修正後邏輯] - 打破 passCount 限制，建立多益 P6 專屬多元題型池
+  const p6Types = [
+    "【商業電子郵件或信件 (Email/Letter)】",
+    "【公司內部公告 (Memo/Notice)】",
+    "【產品發布或新聞稿 (Article/Press Release)】",
+    "【廣告宣傳 (Advertisement)】",
+    "【網頁資訊或常見問題 (Webpage/FAQ)】"
+  ];
+  let selectedType = p6Types[Math.floor(Math.random() * p6Types.length)];
+  let missionPrompt = `請將素材改寫為一篇${selectedType}。`;
+
+  const prompt = `
+  你是一位嚴謹的多益出題官。請閱讀下方的素材，設計一個符合「多益 Part 6 (段落填空)」標準的題組。
+
+  🎯 當前任務：${missionPrompt}
+
+  【出題規範】
+  1. 請撰寫一篇約 130~160 字的文章。
+  2. 必須在文章中挖出 4 個空格，分別標示為 ___(1)___, ___(2)___, ___(3)___, ___(4)___。
+  3. 這 4 個空格的考點分配必須包含：
+     - 至少 1 題「單字/詞彙題」(Vocabulary)
+     - 至少 1 題「文法/時態題」(Grammar)
+     - 必須剛好 1 題是「插入完整句子」(Sentence Insertion) -> 這題的選項必須是 4 個完整的英文句子。
+  ⚠️ 【翻譯強制令】：你必須提供全篇完整、通順的繁體中文翻譯，絕對不可遺漏、縮減或留空，否則系統將判定為無效產出。
+
+  【JSON 格式要求】(直接輸出 JSON 物件，嚴禁 Markdown)
+  {
+    "article_html": "請在此填入含有空格的文章 HTML (請使用 <br> 換行，不要使用雙引號破壞 JSON)。",
+    "article_translation": "請提供整篇文章的完整繁體中文翻譯，幫助學生理解上下文。", // 🌟 新增此行
+    "part6": [
+      {
+        "TestPoint": "單字題 / 文法題 / 插入句子題",
+        "Question": "填空題 (1)",
+        "Option_A": "選項A",
+        "Option_B": "選項B",
+        "Option_C": "選項C",
+        "Option_D": "選項D",
+        "Correct_Answer": "A/B/C/D",
+        "Translation": "四個選項的完整中文翻譯。若為插入句子題，請翻譯整句。",
+        "Analysis": "為何選此答案的解析，並說明上下文的邏輯推演"
+      }
+      // ... 請提供 4 題，對應文章中的 4 個空格
+    ]
+  }
+
+  【素材】
+  ${text}
+  `;
+
+  const payload = { "contents": [{ "parts": [{"text": prompt}] }], "generationConfig": { "responseMimeType": "application/json" } };
+  const options = { "method": "post", "contentType": "application/json", "payload": JSON.stringify(payload), "muteHttpExceptions": true };
+
+  const maxRetries = 3;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      let response = UrlFetchApp.fetch(url, options);
+      let json = JSON.parse(response.getContentText());
+      if (json.candidates && json.candidates.length > 0) {
+        return JSON.parse(json.candidates[0].content.parts[0].text.replace(/```json/g, "").replace(/```/g, "").trim());
+      }
+    } catch (e) {
+      if (attempt < maxRetries) Utilities.sleep(5000);
+    }
+  }
+  return null;
+}
+
+
+// ==========================================================
+// 📖 階段三：Part 7 閱讀題組 Agent (極限榨取版)
+// ==========================================================
+
+// 🌟 修正位置：runAgent_Doc_to_Part7 函數內部，移除 while 迴圈，改為單次掃描
+function runAgent_Doc_to_Part7(targetID = null) {
+  Logger.log("📖 啟動 Part 7 閱讀題組 Agent (支援雜誌與新聞)...");
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName("TOEIC_Bank");
+  const ledgerSheet = ss.getSheetByName("Master_Ledger");
+  if (!sheet || !ledgerSheet) return;
+
+  const MAX_TARGET_ROUND = 3; 
+  const ledgerData = ledgerSheet.getDataRange().getValues();
+  const headers = ledgerData[0];
+  const fileIdIdx = headers.indexOf("FileID");
+  const fileNameIdx = headers.indexOf("FileName");
+  const statusIdx = headers.indexOf("Part7_Status");
+
+  let minScore = MAX_TARGET_ROUND;
+  let targetRowIdx = -1;
+
+  // 🌟 修正：直接尋找最低分素材，不使用 while 霸佔時間，將控制權還給 Orchestrator
+  for (let i = 1; i < ledgerData.length; i++) {
+    let s = parseFloat(ledgerData[i][statusIdx]);
+    if (!isNaN(s) && s < minScore) {
+      minScore = s;
+      targetRowIdx = i;
+    }
+  }
+
+  if (targetRowIdx === -1 || minScore >= MAX_TARGET_ROUND) {
+    Logger.log("😴 本輪已無可用素材，提早休眠。");
+    return;
+  }
+
+  let i = targetRowIdx;
+  let fileId = ledgerData[i][fileIdIdx];
+  let fileName = ledgerData[i][fileNameIdx];
+  let usageScore = minScore;
+
+  Logger.log(`📖 鎖定目標 [${fileName}]，執行 Part 7 出題...`);
+
+  let textContent = extractTextFromFile(fileId);
+  if (!textContent || textContent.length < 150) {
+    // 遇到無效檔，給予抗性推進避免死迴圈
+    ledgerSheet.getRange(i + 1, statusIdx + 1).setValue((usageScore + 0.05).toFixed(4));
+    return;
+  }
+
+  let passCount = Math.floor(usageScore);
+  let generatedData = generatePart7FromGemini(textContent.substring(0, 3500), passCount);
+
+  if (generatedData && generatedData.part7 && generatedData.part7.length > 0) {
+    let p7MaxId = getMaxId(sheet, "P7-");
+    let newId = targetID ? targetID : "P7-" + (p7MaxId + 1).toString().padStart(6, '0');
+
+    // [修正後邏輯] - 捕捉文章翻譯，並對齊 P6 寫入第 13 個欄位
+    let articleHtml = `<div style="padding:15px; background:#fdfefe; border:1px solid #d5dbdb; border-radius:8px; font-family: sans-serif; line-height: 1.8;">${generatedData.article_html}</div>`;
+    let groupQuestionsJSON = JSON.stringify(generatedData.part7);
+    let articleTrans = generatedData.article_translation || "⚠️ AI 遺漏整篇翻譯"; // 🌟 新增抓取全篇翻譯
+
+    sheet.appendRow([
+      newId, "Part7", "閱讀題組", "題組題", "", articleHtml, "",
+      groupQuestionsJSON, "", "", "", "", articleTrans, "" // 🌟 第13個欄位寫入全篇翻譯
+    ]);
+
+    ledgerSheet.getRange(i + 1, statusIdx + 1).setValue((passCount + 1.0).toFixed(4));
+    Logger.log(`✅ 成功產出 1 篇 Part 7 題組！分數更新為 ${(passCount + 1.0).toFixed(4)}`);
+  } else {
+    // 抗性補償機制
+    let recalibratedScore = usageScore + 0.05;
+    ledgerSheet.getRange(i + 1, statusIdx + 1).setValue(recalibratedScore.toFixed(4));
+    Logger.log(`⚠️ [抗性沉底] [${fileName}] 本輪產出 0 題。微幅推進分數至 ${recalibratedScore.toFixed(4)}。`);
+  }
+}
+
+// --- 核心 AI 引擎：Part 7 專用 ---
+function generatePart7FromGemini(text, passCount) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${AGENT_CONFIG.GEMINI_API_KEY}`;
+  
+  // [修正後邏輯] - 擴充 P7 題型池，並在 JSON 格式要求中補上 article_translation
+  const p7Types = [
+    "【商業書信或電子郵件 (Email/Letter)】",
+    "【內部公告或備忘錄 (Memo/Notice)】",
+    "【新聞稿或文章 (Article/Review)】",
+    "【廣告促銷 (Advertisement)】",
+    "【網頁資訊 (Webpage)】",
+    "【行程表或表單 (Schedule/Form)】",
+    "【線上聊天室/文字訊息 (Text message chain)】"
+  ];
+  let selectedType = p7Types[Math.floor(Math.random() * p7Types.length)];
+  let missionPrompt = `改寫為${selectedType}`;
+  
+  const prompt = `
+  你是一位嚴謹的多益出題官。請閱讀素材，設計一個符合「多益 Part 7 (單篇文章閱讀)」標準的題組。
+  🎯 當前任務：${missionPrompt}
+  【規範】
+  1. 撰寫一篇約 150~200 字的文章 (若為表單/訊息，請符合該格式特性)。
+  2. 設計 3 道閱讀測驗題（包含 1 題主旨題，1 題細節題，1 題推論題或同義詞題）。
+  ⚠️ 【翻譯強制令】：你必須提供全篇完整、通順的繁體中文翻譯，絕對不可遺漏、縮減或留空，否則系統將判定為無效產出。
+
+  【JSON 格式要求】(直接輸出 JSON，嚴禁 Markdown)
+  {
+    "article_html": "請填寫文章 HTML (<br>換行)",
+    "article_translation": "請提供整篇文章的完整繁體中文翻譯", // 🌟 補上翻譯欄位引導
+    "part7": [
+      {
+        "TestPoint": "主旨題 / 細節題 / 推論題",
+        "Question": "題目...",
+        "Option_A": "選項A", "Option_B": "選項B", "Option_C": "選項C", "Option_D": "選項D",
+        "Correct_Answer": "A/B/C/D",
+        "Translation": "四選項翻譯",
+        "Analysis": "解析"
+      }
+    ]
+  }
+  【素材】\n${text}
+  `;
+
+  const payload = { "contents": [{ "parts": [{"text": prompt}] }], "generationConfig": { "responseMimeType": "application/json" } };
+  const options = { "method": "post", "contentType": "application/json", "payload": JSON.stringify(payload), "muteHttpExceptions": true };
+
+  try {
+    let response = UrlFetchApp.fetch(url, options);
+    let json = JSON.parse(response.getContentText());
+    if (json.candidates && json.candidates.length > 0) {
+      return JSON.parse(json.candidates[0].content.parts[0].text.replace(/```json/g, "").replace(/```/g, "").trim());
+    }
+  } catch (e) { Utilities.sleep(3000); }
+  return null;
+}
+
+
+// ==========================================================
+// 🗣️ 階段七：AI 口說情境自動生成大腦 (Speaking Agent)
+// ==========================================================
+
+function runAgent_Speaking_Generator() {
+  Logger.log("🗣️ 啟動口說情境自動生成大腦...");
+  
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("Speaking_Bank");
+  if (!sheet) return;
+
+  var geminiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + AGENT_CONFIG.GEMINI_API_KEY;
+  
+  var prompt = `
+  你是一個多益 (TOEIC) 與商務英語情境設計專家。
+  請隨機生成 3 個適合用來做「英文口說角色扮演對練」的實戰情境。
+  主題必須涵蓋多益常見場景，例如：商務會議、飯店客服、機場海關、餐廳點餐、跨國專案匯報等。
+  
+  請嚴格以 JSON Array 格式回傳，不要包含 Markdown 標記 (\`\`\`json)。
+  格式範例：
+  [
+    {
+      "Title": "🏨 飯店前台：處理超賣客訴",
+      "System_Prompt": "You are an angry hotel guest whose room was overbooked. Be polite but firm. Ask the front desk for compensation. Keep responses under 30 words. If the user makes a grammar error, politely correct them in parentheses at the end: (Tip: ...)",
+      "First_Message": "Excuse me, I was just told my reservation is unavailable due to overbooking. This is unacceptable. What are you going to do about it?"
+    }
+  ]
+  `;
+
+  var payload = { "contents": [{ "parts": [{"text": prompt}] }] };
+  var options = { "method": "post", "contentType": "application/json", "payload": JSON.stringify(payload), "muteHttpExceptions": true };
+
+  try {
+    var response = UrlFetchApp.fetch(geminiUrl, options);
+    var json = JSON.parse(response.getContentText());
+    
+    if (json.candidates && json.candidates.length > 0) {
+      var resultText = json.candidates[0].content.parts[0].text.replace(/```json/g, "").replace(/```/g, "").trim();
+      var scenarios = JSON.parse(resultText);
+      
+      var today = new Date();
+      // 將生成的情境寫入 Speaking_Bank
+      scenarios.forEach(function(s) {
+        sheet.appendRow([today, s.Title, s.System_Prompt, s.First_Message]);
+      });
+      Logger.log("✅ 成功新增 3 個口說情境！");
+    }
+  } catch (e) {
+    Logger.log("❌ 情境生成失敗：" + e);
+  }
+}
+
+// ==========================================================
+// 🧠 中央大腦：資料庫同步模組 (全單元獨立列管版)
+// ==========================================================
+
+const DROP_FOLDER_ID = "1wstL66qWr2yV6_f73joZMzYUeudjb0aH";
+const LEDGER_SHEET_NAME = "Master_Ledger";
+
+function syncFilesToLedger() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(LEDGER_SHEET_NAME);
+
+  if (!sheet) {
+    sheet = ss.insertSheet(LEDGER_SHEET_NAME);
+    const headers = [
+      "FileID", "FileName", "Category", 
+      "Speaking_Status", "Part1_Status", "Part2_Status", "Part3_Status", "Part4_Status", "Part5_Status", "Part6_Status", "Part7_Status",
+      "Speaking_Concepts", "Part1_Concepts", "Part2_Concepts", "Part3_Concepts", "Part4_Concepts", "Part5_Concepts", "Part6_Concepts", "Part7_Concepts"
+    ];
+    sheet.appendRow(headers);
+    sheet.getRange(1, 1, 1, headers.length).setFontWeight("bold").setBackground("#d9ead3").setHorizontalAlignment("center");
+    sheet.setFrozenRows(1);
+  }
+
+  const existingData = sheet.getDataRange().getValues();
+  const existingIds = new Set();
+  if (existingData.length > 1) {
+    for (let i = 1; i < existingData.length; i++) {
+      existingIds.add(existingData[i][0]);
+    }
+  }
+
+  const parentFolder = DriveApp.getFolderById(DROP_FOLDER_ID);
+  const subFolders = parentFolder.getFolders();
+  let newFileCount = 0;
+
+  function processFolder(folder, categoryName) {
+    const files = folder.getFiles();
+    while (files.hasNext()) {
+      const file = files.next();
+      const fileId = file.getId();
+      const fileName = file.getName().toLowerCase();
+      const mimeType = file.getMimeType();
+
+      if (!existingIds.has(fileId)) {
+        let isImage = (mimeType === MimeType.JPEG || mimeType === MimeType.PNG || 
+                       fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') || fileName.endsWith('.png'));
+
+        // 🌟 修正：將 Google Doc 加入合法文字來源，並解鎖 P2~P7 陣列
+        let isTextSource = (mimeType === MimeType.PDF || mimeType === MimeType.GOOGLE_DOCS || fileName.endsWith('.pdf'));
+
+        let p1 = isImage ? 0 : "N/A";
+        let speak = isTextSource ? 0 : "N/A";
+        let p5 = isTextSource ? 0 : "N/A";
+        let p2 = isTextSource ? 0 : "N/A"; 
+        let p3 = isTextSource ? 0 : "N/A"; 
+        let p4 = isTextSource ? 0 : "N/A"; 
+        let p6 = isTextSource ? 0 : "N/A"; 
+        let p7 = isTextSource ? 0 : "N/A"; // 讓 P7 也能讀取這些素材
+
+        sheet.appendRow([
+          fileId, file.getName(), categoryName,
+          speak, p1, p2, p3, p4, p5, p6, p7,
+          "", "", "", "", "", "", "", "" 
+        ]);
+        newFileCount++;
+      }
+    }
+  }
+
+  processFolder(parentFolder, "Root");
+  while (subFolders.hasNext()) {
+    const folder = subFolders.next();
+    processFolder(folder, folder.getName());
+  }
+
+  Logger.log("✅ 戰情室更新完畢！共新增 " + newFileCount + " 筆資源，初始狀態皆設定為 0。");
+}
+
+// ==========================================================
+// 👑 真・動態平衡廠長：Master Orchestrator (時間極限循環升級版)
+// ==========================================================
+
+function Master_Orchestrator() {
+  Logger.log("🧠 [大腦甦醒] 廠長開始巡視正式題庫水位，進入極限榨取模式...");
+
+  const startTime = new Date().getTime();
+  const MAX_EXECUTION_TIME = 4.2 * 60 * 1000; // 4.2 分鐘安全線
+  const MAX_DAILY_RUNS = 30; // 提升每日排程次數上限
+  
+  let props = PropertiesService.getScriptProperties();
+  let todayStr = Utilities.formatDate(new Date(), "GMT+8", "yyyy-MM-dd");
+  let lastRunDate = props.getProperty("LAST_RUN_DATE");
+  let dailyRuns = parseInt(props.getProperty("DAILY_RUNS")) || 0;
+
+  if (lastRunDate !== todayStr) {
+    dailyRuns = 0;
+    props.setProperty("LAST_RUN_DATE", todayStr);
+  }
+
+  if (dailyRuns >= MAX_DAILY_RUNS) {
+    Logger.log(`⚠️ 今日 API 呼叫已達上限 (${MAX_DAILY_RUNS})，全廠休眠。`);
+    return;
+  }
+
+  // 1. 自動同步新物料進戰情室
+  syncFilesToLedger();
+
+  // 2. 初始化各單元水位
+  let pools = [
+    { name: "Part1", count: getQuestionCount("TOEIC_Bank", "Part1"), run: runAgent_Image_to_Part1 },
+    { name: "Part2", count: getQuestionCount("TOEIC_Bank", "Part2"), run: runAgent_Doc_to_Part2 },
+    { name: "Part3", count: getQuestionCount("TOEIC_Bank", "Part3"), run: runAgent_Doc_to_Part3 },
+    { name: "Part4", count: getQuestionCount("TOEIC_Bank", "Part4"), run: runAgent_Doc_to_Part4 },
+    { name: "Part5", count: getQuestionCount("TOEIC_Bank", "Part5"), run: runAgent_PDF_to_Part5 },
+    { name: "Part6", count: getQuestionCount("TOEIC_Bank", "Part6"), run: runAgent_Doc_to_Part6 },
+    { name: "Part7", count: getQuestionCount("TOEIC_Bank", "Part7"), run: runAgent_Doc_to_Part7 },
+    { name: "Speaking", count: getQuestionCount("Flashcards", null), run: runAgent_PDF_to_Speaking }
+  ];
+
+  let taskExecutedSuccess = false;
+
+  // 🌟 核心突破：只要時間還沒到 4.2 分鐘，就持續循環！
+  while (new Date().getTime() - startTime < MAX_EXECUTION_TIME) {
+    // 每次循環前，找出目前水位「最低」的單位
+    pools.sort((a, b) => a.count - b.count);
+    let nextTask = pools[0];
+
+    Logger.log(`🚀 執行任務分配 => 鎖定水位最低單元：[${nextTask.name}] (當前題數: ${nextTask.count})`);
+
+    let sheetName = nextTask.name === "Speaking" ? "Flashcards" : "TOEIC_Bank";
+    let partName = nextTask.name === "Speaking" ? null : nextTask.name;
+    let beforeCount = getQuestionCount(sheetName, partName);
+    
+    // 執行專屬 Agent
+    nextTask.run(); 
+
+    let afterCount = getQuestionCount(sheetName, partName);
+    let produced = afterCount - beforeCount;
+
+    if (produced > 0) {
+      Logger.log(`🎉 [${nextTask.name}] 本輪成功產出 ${produced} 題！更新實時水位。`);
+      nextTask.count = afterCount; // 更新真實題數，供下一次迴圈重新排序
+      taskExecutedSuccess = true;
+    } else {
+      // 🌟 資源保護機制：若產出為 0，虛擬墊高其排序權重 (加 9999 題)，
+      // 確保在「本次執行時間內」不會再被選中，避免陷入死迴圈。
+      // 因為沒有推進 Master_Ledger 分數，下次 GAS 排程啟動時，會再次給它機會。
+      Logger.log(`⚠️ [${nextTask.name}] 資源卡關產出為 0。啟動保護機制，將其移出本輪隊列...`);
+      nextTask.count += 9999; 
+    }
+  }
+
+  if (taskExecutedSuccess) {
+    dailyRuns++;
+    props.setProperty("DAILY_RUNS", dailyRuns.toString());
+    Logger.log("⏱️ 4.2 分鐘極限時間到達，廠長順利下班交接。");
+  } else {
+    Logger.log("😴 盤點結束：全單元皆已搾乾（或無可用資源），本次無新產出。");
+  }
+}
+
+function getQuestionCount(sheetName, partName) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(sheetName);
+  if (!sheet) return 0;
+  if (sheetName === "TOEIC_Bank" && partName) {
+    const data = sheet.getDataRange().getValues();
+    return data.filter(row => row[1] === partName).length;
+  } else if (sheetName === "Flashcards") {
+    return Math.max(0, sheet.getLastRow() - 1); 
+  }
+  return 0;
+}
+
+// ==========================================================
+// 📥 階段三：全自動資源採集網 (Engoo + VOA + BBC)
+// ==========================================================
+
+// 每日排程觸發此主函數
+function runAutomatedHarvester() {
+  Logger.log("📥 啟動全自動資源採集網...");
+  
+  let targetUrls = [];
+
+  // 1. 自動掃描 Engoo 最新文章 (抓取前 2 篇)
+  let engooUrls = getLatestEngooUrls(2);
+  targetUrls = targetUrls.concat(engooUrls);
+
+  // 2. 自動掃描 VOA Learning English (抓取前 1 篇)
+  let voaUrls = getLatestVOAUrls(1);
+  targetUrls = targetUrls.concat(voaUrls);
+
+  Logger.log(`🎯 今日共鎖定 ${targetUrls.length} 篇最新素材，準備進入分離下載程序...`);
+
+  // 3. 丟入下載處理器 (沿用並升級上一版的圖文分離器)
+  processAndDownloadResources(targetUrls);
+}
+
+// ----------------------------------------------------
+// 🤖 尋標模組 A：Engoo 首頁爬蟲 (強化反爬蟲偽裝)
+// ----------------------------------------------------
+function getLatestEngooUrls(count) {
+  let urls = [];
+  try {
+    // 模擬真實瀏覽器的完整 Headers
+    const options = {
+      muteHttpExceptions: true,
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+        "Accept-Language": "zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7",
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache",
+        "Sec-Fetch-Dest": "document",
+        "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-Site": "none",
+        "Upgrade-Insecure-Requests": "1"
+      }
+    };
+    
+    let response = UrlFetchApp.fetch("https://engoo.com.tw/app/daily-news", options);
+    if (response.getResponseCode() !== 200) {
+      Logger.log(`⚠️ Engoo 阻擋訪問 (HTTP ${response.getResponseCode()})，可能是 Cloudflare WAF 攔截。`);
+      return urls;
+    }
+    
+    let html = response.getContentText();
+    let regex = /href="(\/app\/daily-news\/article\/[^"]+)"/gi;
+    let matches;
+    let uniqueLinks = new Set();
+
+    while ((matches = regex.exec(html)) !== null) {
+      uniqueLinks.add("https://engoo.com.tw" + matches[1]);
+    }
+    
+    urls = Array.from(uniqueLinks).slice(0, count);
+    Logger.log(`✅ 成功尋獲 ${urls.length} 篇 Engoo 最新文章`);
+  } catch (e) {
+    Logger.log("❌ Engoo 爬蟲發生例外錯誤: " + e);
+  }
+  return urls;
+}
+
+// ----------------------------------------------------
+// 🤖 尋標模組 B：VOA 學習英語 (加入自動重試與容錯)
+// ----------------------------------------------------
+function getLatestVOAUrls(count) {
+  let urls = [];
+  let rssUrl = "https://learningenglish.voanews.com/api/zmgqoe_kymo"; 
+  const maxRetries = 3;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      let response = UrlFetchApp.fetch(rssUrl, { muteHttpExceptions: true });
+      if (response.getResponseCode() !== 200) throw new Error("HTTP " + response.getResponseCode());
+      
+      let xml = response.getContentText();
+      let document = XmlService.parse(xml);
+      let items = document.getRootElement().getChild('channel').getChildren('item');
+      
+      for (let i = 0; i < Math.min(count, items.length); i++) {
+        urls.push(items[i].getChildText('link'));
+      }
+      Logger.log(`✅ 成功尋獲 ${urls.length} 篇 VOA 最新文章`);
+      break; // 成功即跳出重試迴圈
+    } catch (e) {
+      Logger.log(`⚠️ VOA RSS 解析失敗 (第 ${attempt} 次): ${e}`);
+      if (attempt < maxRetries) Utilities.sleep(3000); // 冷卻 3 秒後重試
+    }
+  }
+  return urls;
+}
+
+// ----------------------------------------------------
+// ⚙️ 處理模組：圖文分離、主動上傳 GitHub 並註冊至戰情室
+// ----------------------------------------------------
+function processAndDownloadResources(urls) {
+  const folder = DriveApp.getFolderById(DROP_FOLDER_ID);
+  const ledgerSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Master_Ledger");
+  if (!folder || !ledgerSheet) return;
+
+  // 🌟 [增量更新 1]：讀取既有資料庫，建立防重複 Set (假設 B 欄為檔名/標題)
+  const lastRow = ledgerSheet.getLastRow();
+  let existingTitles = new Set();
+  if (lastRow > 1) {
+    const existingData = ledgerSheet.getRange(2, 2, lastRow - 1, 1).getValues(); 
+    existingTitles = new Set(existingData.flat().filter(String));
+  }
+
+  urls.forEach(url => {
+    try {
+      let response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+      if (response.getResponseCode() !== 200) return;
+      
+      let html = response.getContentText();
+      
+      // 1. 判斷來源並萃取標題
+      let sourceTag = url.includes("engoo") ? "Engoo Daily News" : "VOA Learning English";
+      let titleMatch = html.match(/<title>(.*?)<\/title>/i);
+      let rawTitle = titleMatch ? titleMatch[1].split('|')[0].trim() : "News_" + new Date().getTime();
+      let safeTitle = rawTitle.replace(/[\\/:*?"<>|]/g, ""); 
+
+      // 🌟 [增量更新 2]：執行第一道防線，比對標題是否已存在戰情室
+      if (existingTitles.has(`${safeTitle}_Image.jpg`) || existingTitles.has(`${safeTitle}_Text`)) {
+         Logger.log(`⏭️ [跳過] ${safeTitle} 已存在於戰情室，避免重複採集。`);
+         return; // 結束這回合的 forEach，跳至下一個 URL
+      }
+      
+      // 2. 處理圖片：OG Image 抓取 ➔ Drive 備份 ➔ GitHub 上傳 ➔ 取得 Raw URL
+      let imgMatch = html.match(/<meta property="og:image" content="(.*?)"/i);
+      let githubUrl = "";
+      
+      if (imgMatch && imgMatch[1]) {
+        let imgResponse = UrlFetchApp.fetch(imgMatch[1], { muteHttpExceptions: true });
+        if (imgResponse.getResponseCode() === 200) {
+          let imgBlob = imgResponse.getBlob();
+          let imgFileName = `${safeTitle}_Image.jpg`;
+          imgBlob.setName(imgFileName);
+          
+          // 備份至 Drive 取得 FileID，供系統統一看管
+          let driveImgFile = folder.createFile(imgBlob);
+          
+          // 同步上傳至 GitHub
+          let base64Image = Utilities.base64Encode(imgBlob.getBytes());
+          githubUrl = uploadToGitHub(imgFileName, base64Image) || "";
+          
+          // 🌟 主動註冊 Image 至戰情室 (寫入 Part1_Concepts 欄位)
+          ledgerSheet.appendRow([
+            driveImgFile.getId(), imgFileName, "Harvester",
+            "N/A", 0, "N/A", "N/A", "N/A", "N/A", "N/A", "N/A",
+            "", githubUrl, "", "", "", "", "", "" // 第 13 欄為 Part1_Concepts，直接存入 GitHub URL
+          ]);
+          Logger.log(`✅ [影像入庫] ${imgFileName} 已自動上傳 GitHub 並註冊戰情室。`);
+        }
+      }
+
+      // 3. 處理內文：深度過濾與清洗
+      let textContent = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+                            .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")
+                            .replace(/<nav\b[^<]*(?:(?!<\/nav>)<[^<]*)*<\/nav>/gi, "")       // 剔除導覽列
+                            .replace(/<footer\b[^<]*(?:(?!<\/footer>)<[^<]*)*<\/footer>/gi, "") // 剔除頁尾
+                            .replace(/<!--[\s\S]*?-->/g, "")                                // 剔除註解
+                            .replace(/<\/p>/gi, "\n\n")
+                            .replace(/<[^>]+>/g, "")
+                            .replace(/^[ \t]+/gm, "")
+                            .replace(/\n{3,}/g, "\n\n")
+                            .trim();
+
+      if (textContent.length > 300) {
+        let doc = DocumentApp.create(`${safeTitle}_Text`);
+        // 🌟 標註來源，強化 AI 提取脈絡
+        doc.getBody().setText(`[Source: ${sourceTag} | URL: ${url}]\n\n${textContent}`);
+        doc.saveAndClose();
+        
+        let file = DriveApp.getFileById(doc.getId());
+        file.moveTo(folder);
+        
+        // 🌟 主動註冊 Text 至戰情室 (分數設為 0，成為 AI 最高優先級)
+        ledgerSheet.appendRow([
+          doc.getId(), doc.getName(), "Harvester",
+          0, "N/A", 0, 0, 0, 0, 0, 0,
+          "", "", "", "", "", "", "", ""
+        ]);
+        
+        Logger.log(`✅ [文本入庫] ${doc.getName()} 清洗分離完成，優先級就緒。`);
+      }
+
+    } catch (e) {
+      Logger.log(`❌ 處理網址失敗 ${url}: ${e}`);
+    }
+  });
+}
+
+// ==========================================================
+// 🌍 階段三：國際時事獵手 Agent (RSS + Gemini 雙棲出題)
+// ==========================================================
+
+const NEWS_AGENT_CONFIG = {
+  GEMINI_API_KEY: AGENT_CONFIG.GEMINI_API_KEY, 
+  // 這裡以 BBC 商業新聞的 RSS 為例，資料結構極度穩定
+  RSS_URL: "http://feeds.bbci.co.uk/news/business/rss.xml" 
+};
+
+function runAgent_RSS_to_Content() {
+  Logger.log("🌍 啟動國際時事獵手 Agent...");
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const toeicSheet = ss.getSheetByName("TOEIC_Bank");
+  const speakingSheet = ss.getSheetByName("Flashcards");
+  
+  if (!toeicSheet || !speakingSheet) return;
+
+  // 1. 抓取並解析 RSS 最新新聞摘要
+  let newsItems = fetchLatestRSS(NEWS_AGENT_CONFIG.RSS_URL, 1);
+  if (!newsItems || newsItems.length === 0) {
+    Logger.log("❌ 無法獲取 RSS 資訊。");
+    return;
+  }
+  
+  let targetNews = newsItems[0];
+  Logger.log(`📰 鎖定今日時事：${targetNews.title}`);
+
+  // 2. 呼叫 Gemini 進行「多益化改寫」與「口說提煉」
+  let generatedData = generateDualContentFromNews(targetNews.title, targetNews.description);
+  if (!generatedData) {
+    Logger.log("❌ Gemini 產出失敗。");
+    return;
+  }
+
+  // --- 3. 寫入 TOEIC_Bank (Part 7 題組) ---
+  let p7MaxId = getMaxId(toeicSheet, "P7-");
+  let articleHtml = `<div style="padding:10px; background:#f4f6f7; border-left:4px solid #2980b9;"><strong>[時事改寫閱讀] ${targetNews.title}</strong><br><br>${generatedData.article_html}</div>`;
+  
+  if (generatedData.part7 && generatedData.part7.length > 0) {
+    p7MaxId++;
+    let newId = "P7-" + p7MaxId.toString().padStart(6, '0');
+    
+    // 🌟 核心升級：將陣列轉為 JSON 字串，整包存入 Option_A 欄位
+    let groupQuestionsJSON = JSON.stringify(generatedData.part7);
+
+    toeicSheet.appendRow([
+      newId, "Part7", "時事閱讀題組", "題組題", "", articleHtml, "",
+      groupQuestionsJSON, "", "", "", // Option_A 塞入整包 JSON，B/C/D 留空
+      "", "", "" // 答案與解析也留空，因為全部都在 JSON 裡面了
+    ]);
+    Logger.log(`✅ 成功產出 1 篇 Part 7 題組 (內含 ${generatedData.part7.length} 題)！`);
+  }
+
+  // --- 4. 寫入 Flashcards (口說字卡) ---
+  let sMaxId = getMaxId(speakingSheet, "S-");
+  if (generatedData.speaking && generatedData.speaking.length > 0) {
+    generatedData.speaking.forEach(q => {
+      sMaxId++;
+      let newId = "S-" + sMaxId.toString().padStart(6, '0');
+      speakingSheet.appendRow([newId, q.tag, q.scenario_tw, q.context_tw, q.sentence_en]);
+    });
+    Logger.log(`✅ 成功產出 ${generatedData.speaking.length} 句時事口說！`);
+  }
+}
+
+// --- 輔助：抓取並解析 XML RSS ---
+function fetchLatestRSS(url, count) {
+  try {
+    let response = UrlFetchApp.fetch(url);
+    let xml = response.getContentText();
+    let document = XmlService.parse(xml);
+    let root = document.getRootElement();
+    let channel = root.getChild('channel');
+    let items = channel.getChildren('item');
+    
+    let results = [];
+    for (let i = 0; i < Math.min(count, items.length); i++) {
+      results.push({
+        title: items[i].getChildText('title'),
+        description: items[i].getChildText('description'),
+        link: items[i].getChildText('link')
+      });
+    }
+    return results;
+  } catch (e) { return null; }
+}
+
+// --- 輔助：取得目前最大 ID ---
+function getMaxId(sheet, prefix) {
+  let currentMaxId = 0;
+  let data = sheet.getDataRange().getValues();
+  for (let j = 1; j < data.length; j++) {
+    let idStr = data[j][0] ? data[j][0].toString() : "";
+    if (idStr.startsWith(prefix)) {
+      // 🌟 修正：只拔掉指定的 prefix (例如 "P7-")，不要用正規表達式掃描所有數字
+      let num = parseInt(idStr.replace(prefix, ""), 10);
+      if (!isNaN(num) && num > currentMaxId) currentMaxId = num;
+    }
+  }
+  return currentMaxId;
+}
+
+// --- 核心 AI 引擎：一次產出雙模組內容 ---
+function generateDualContentFromNews(title, summary) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${NEWS_AGENT_CONFIG.GEMINI_API_KEY}`;
+  
+  const prompt = `
+  你是一位專業的多益出題官與口說教練。請根據下方的【真實新聞時事】，完成兩項任務：
+
+  任務一：改寫多益 Part 7 文章與出題
+  請將該新聞摘要，改寫成一篇約 150 字、符合多益情境的「商業書信(Email)」、「內部公告(Memo)」或「簡短新聞稿」。
+  接著，針對這篇文章設計 3 道閱讀測驗題（包含主旨題、細節題、推論題）。
+
+  任務二：提煉實戰口說字卡
+  從該時事主題中，提煉 2 句適合用在國際會議或外商社交場合的「高階商務閒聊」或「意見表達」英文金句。
+
+  【時事素材】
+  標題: ${title}
+  摘要: ${summary}
+
+  【JSON 格式要求 (嚴禁 Markdown，直接輸出純 JSON 物件)】
+  {
+    "article_html": "請在此填入改寫後的 150 字多益文章 (請使用 <br> 換行，不要使用雙引號避免破壞 JSON 格式)",
+    "part7": [
+      {
+        "TestPoint": "主旨題 / 細節題 / 推論題",
+        "Question": "題目...",
+        "Option_A": "...", "Option_B": "...", "Option_C": "...", "Option_D": "...",
+        "Correct_Answer": "A/B/C/D",
+        "Translation": "完整翻譯與詞性",
+        "Analysis": "為何選此答案的解析"
+      }
+    ],
+    "speaking": [
+      {
+        "tag": "🌍 國際時事",
+        "scenario_tw": "用一句話描述使用情境",
+        "context_tw": "道地的中文翻譯",
+        "sentence_en": "高階實用的英文句子"
+      }
+    ]
+  }
+  `;
+
+  const payload = { "contents": [{ "parts": [{"text": prompt}] }], "generationConfig": { "responseMimeType": "application/json" } };
+  const options = { "method": "post", "contentType": "application/json", "payload": JSON.stringify(payload), "muteHttpExceptions": true };
+
+  try {
+    let response = UrlFetchApp.fetch(url, options);
+    let json = JSON.parse(response.getContentText());
+    if (json.candidates && json.candidates.length > 0) {
+      return JSON.parse(json.candidates[0].content.parts[0].text.replace(/```json/g, "").replace(/```/g, "").trim());
+    }
+  } catch (e) { return null; }
+  return null;
+}
+
+// ==========================================================
+// 🛡️ 階段五：會員審核要塞與限流閘門
+// ==========================================================
+
+// 🌟 1. 建立管理員專屬選單 (每次開啟試算表時自動載入)
+function onOpen() {
+  var ui = SpreadsheetApp.getUi();
+  ui.createMenu('👑 Derek 系統管理')
+      .addItem('✅ 核准已勾選的申請者', 'approveSelectedUsers')
+      .addToUi();
+}
+
+// 🌟 2. 前端申請 API 的防洪處理 (請將這段整合進原本的 doPost 中)
+// ⚠️ 請複製以下這段 `if (data.action === "applyMembership")` 的邏輯
+// 並貼到您原有的 doPost 函數內部 (跟 updateCard, saveSystemConfig 放一起)
+/*
+  if (data.action === "applyMembership") {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var pendingSheet = ss.getSheetByName("Pending_Users");
+    
+    // 防護一：驗證通關密語 (前端會傳過來)
+    if (data.passcode.toUpperCase() !== "KHH") {
+      return ContentService.createTextOutput(JSON.stringify({status: "error", message: "通關密語錯誤！"})).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // 防護二：水庫限流 (超過 20 筆未審核即鎖定 API)
+    var pendingCount = pendingSheet.getLastRow() - 1;
+    if (pendingCount >= 20) {
+      return ContentService.createTextOutput(JSON.stringify({status: "error", message: "系統審核佇列已滿，請等候管理員清理。"})).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // 寫入待審核區
+    var today = new Date();
+    pendingSheet.appendRow([today, data.desiredId, data.email, data.reason, false]);
+    
+    return ContentService.createTextOutput(JSON.stringify({status: "success"})).setMimeType(ContentService.MimeType.JSON);
+  }
+*/
+
+// 🌟 3. 管理員一鍵核准引擎
+function approveSelectedUsers() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var pendingSheet = ss.getSheetByName("Pending_Users");
+  var membersSheet = ss.getSheetByName("Members_Settings");
+  
+  var data = pendingSheet.getDataRange().getValues();
+  var rowsToDelete = [];
+  var approvedCount = 0;
+
+  // 從下往上掃描 (避免刪除列時索引亂掉)
+  for (var i = data.length - 1; i >= 1; i--) {
+    var isApproved = data[i][4]; // E 欄的核取方塊
+    
+    if (isApproved === true) {
+      var desiredId = data[i][1];
+      var email = data[i][2];
+      
+      // 生成 6 碼隨機密碼
+      var randomPwd = Math.random().toString(36).substring(2, 8).toUpperCase();
+      
+      // 寫入正式會員區 (給予預設參數，XP為0，Level為1)
+      membersSheet.appendRow([desiredId, randomPwd, "", false, 10, 10, 10, 10, 10, 30, 10, 10, 0, 1]);
+      
+      // 發送 Email 通知申請者
+      var subject = "🎉【全效英語實戰 OS】帳號開通通知";
+      var body = `Hello ${desiredId}，\n\n您的帳號已由管理員 Derek 親自審核通過！\n\n登入帳號：${desiredId}\n專屬密碼：${randomPwd}\n\n請前往系統網址登入並開始您的語言升級之旅！`;
+      
+      try {
+        MailApp.sendEmail(email, subject, body);
+      } catch(e) {
+        Logger.log("Email 發送失敗：" + e);
+      }
+      
+      rowsToDelete.push(i + 1); // 記錄要刪除的列號
+      approvedCount++;
+    }
+  }
+
+  // 刪除已核准的列
+  rowsToDelete.forEach(function(rowNum) {
+    pendingSheet.deleteRow(rowNum);
+  });
+
+  var ui = SpreadsheetApp.getUi();
+  if (approvedCount > 0) {
+    ui.alert(`✅ 成功核准 ${approvedCount} 位使用者，已配發密碼並寄出 Email！`);
+  } else {
+    ui.alert("⚠️ 沒有找到勾選的申請者。");
+  }
+}
+
+// ==========================================================
+// 🕵️ 階段六：系統維運 - QA 題庫品質審核員 (多益 + 口說雙棲版)
+// ==========================================================
+
+function runAgent_QA_Audit() {
+  Logger.log("🕵️ 啟動全系統 QA 審核員 (包含 TOEIC 與 Speaking)...");
+  
+  const startTime = new Date().getTime();
+  const MAX_EXECUTION_TIME = 4.2 * 60 * 1000; // 4.2 分鐘極限安全線
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const toeicSheet = ss.getSheetByName("TOEIC_Bank");
+  const speakSheet = ss.getSheetByName("Flashcards"); // ⚠️請確認您的口說題庫工作表名稱是否為此
+  const sheetProgress = ss.getSheetByName("User_Progress");
+  
+  // ==========================================
+  // 🔍 模組 A：掃描多益題庫 (TOEIC_Bank)
+  // ==========================================
+  if (toeicSheet) {
+    Logger.log("📘 進入多益題庫檢查...");
+    const tData = toeicSheet.getDataRange().getValues();
+    let existingIds = new Set();
+    let maxIds = { 'P1': 0, 'P2': 0, 'P3': 0, 'P4': 0, 'P5': 0, 'P6': 0, 'P7': 0 };
+
+    for (let i = 1; i < tData.length; i++) {
+      let cardId = tData[i][0] ? tData[i][0].toString() : "";
+      existingIds.add(cardId);
+      let parts = cardId.split('-');
+      if (parts.length === 2 && maxIds.hasOwnProperty(parts[0])) {
+        let num = parseInt(parts[1], 10);
+        if (!isNaN(num) && num > maxIds[parts[0]]) maxIds[parts[0]] = num;
+      }
+    }
+
+    // 1. 多益缺號補完 (Gap Healer)
+    let gapFixCount = 0;
+    let hole=20;
+    for (let prefix of Object.keys(maxIds)) {
+      if (gapFixCount >= hole) break; // 多益每次最多補 20 洞
+      
+      let consecutiveFailures = 0; // 🌟 斷路器 1：針對每個題型(Prefix)獨立設置連續失敗計數器
+
+      for (let num = 1; num <= maxIds[prefix]; num++) {
+        if (new Date().getTime() - startTime > MAX_EXECUTION_TIME) return;
+        let candidateId = prefix + "-" + num.toString().padStart(6, '0');
+        
+        if (!existingIds.has(candidateId)) {
+          Logger.log(`⚠️ 發現多益缺號 [${candidateId}]，啟動補完程序...`);
+          if (sheetProgress) cleanOrphanRecords(sheetProgress, candidateId);
+          
+          let beforeCount = toeicSheet.getLastRow(); // 🌟 斷路器 2：紀錄呼叫 Agent 前的「資料庫總列數」
+
+          try {
+            switch (prefix) {
+              case 'P1': runAgent_Image_to_Part1(candidateId); break;
+              case 'P2': runAgent_Doc_to_Part2(candidateId); break;
+              case 'P3': processListeningGroupAgent("Part3", candidateId); break; 
+              case 'P4': processListeningGroupAgent("Part4", candidateId); break;
+              case 'P5': runAgent_PDF_to_Part5(candidateId); break;
+              case 'P6': runAgent_Doc_to_Part6(candidateId); break;
+              case 'P7': runAgent_Doc_to_Part7(candidateId); break;
+            }
+            
+            let afterCount = toeicSheet.getLastRow(); // 🌟 斷路器 3：取得呼叫 Agent 後的「資料庫總列數」
+            
+            if (afterCount > beforeCount) {
+              // ✅ 代表真的有寫入新題目
+              consecutiveFailures = 0; // 成功即歸零計數器
+              gapFixCount++;
+            } else {
+              // ❌ 列數沒增加，代表 API 吐空值或圖片已經榨乾
+              consecutiveFailures++;
+              Logger.log(`⚠️ [${candidateId}] 補號產出 0 題。連續失敗次數：${consecutiveFailures}`);
+              
+              // 🌟 斷路器 4：連續 3 次失敗，直接砍斷這個題型的修補！
+              if (consecutiveFailures >= 3) {
+                 Logger.log(`🛑 [斷路器啟動] ${prefix} 連續 3 次產出 0 題，研判為 API 額度耗盡或資源枯竭！強制跳過 ${prefix} 單元補號，將運算時間讓給其他單元。`);
+                 break; // 注意：這個 break 會跳出 num 迴圈，直接進入下一個 prefix (例如從 P1 直接跳去修補 P2)
+              }
+            }
+            
+            Utilities.sleep(4000); // 🌟 斷路器 5：強制冷卻 4 秒，防止密集呼叫觸發 API 429 拒絕存取錯誤
+
+          } catch (e) { 
+            Logger.log(`❌ 呼叫產題 Agent 失敗：${e}`); 
+          }
+          if (gapFixCount >= hole) break;
+        }
+      }
+    }
+
+    // 2. 多益瑕疵修復 (Defect Healer)
+    let fixCount = 0;
+    for (let i = tData.length - 1; i >= 1; i--) {
+      if (new Date().getTime() - startTime > MAX_EXECUTION_TIME) break;
+      if (fixCount >= hole) break; // 多益每次最多修 2 題
+      
+      let rowNum = i + 1;
+      let cardId = tData[i][0];
+      let part = tData[i][1];
+      if (part.toString().startsWith("ERROR_")) continue;
+
+      let isDefective = false;
+      let defectType = "";
+      let rawDataToFix = "";
+
+      if (['Part3', 'Part4', 'Part6', 'Part7'].includes(part)) {
+        let jsonString = tData[i][7]; 
+        try {
+          let parsed = JSON.parse(jsonString);
+          if (!Array.isArray(parsed) || parsed.length === 0) throw new Error("Broken JSON");
+        } catch (e) { isDefective = true; defectType = "JSON_BROKEN"; rawDataToFix = jsonString; }
+      } else if (['Part1', 'Part2', 'Part5'].includes(part)) {
+        let ans = tData[i][11] ? tData[i][11].toString().trim().toUpperCase() : ""; 
+        let trans = tData[i][12] ? tData[i][12].toString().trim() : ""; 
+        if (!['A', 'B', 'C', 'D'].includes(ans) || trans.length < 5) {
+          isDefective = true; defectType = "MISSING_INFO";
+          rawDataToFix = `Question: ${tData[i][6]}\nA: ${tData[i][7]}\nB: ${tData[i][8]}\nC: ${tData[i][9]}\nD: ${tData[i][10]}`;
+        }
+      }
+
+      if (isDefective) {
+        Logger.log(`🚨 修復多益瑕疵題 [${cardId}] (${defectType})...`);
+        let fixedContent = healDefectiveData(defectType, rawDataToFix);
+        if (fixedContent) {
+          if (defectType === "JSON_BROKEN") toeicSheet.getRange(rowNum, 8).setValue(fixedContent); 
+          else if (defectType === "MISSING_INFO") {
+            toeicSheet.getRange(rowNum, 12).setValue(fixedContent.Correct_Answer);
+            toeicSheet.getRange(rowNum, 13).setValue(fixedContent.Translation);
+            toeicSheet.getRange(rowNum, 14).setValue(fixedContent.Analysis);
+          }
+          Logger.log(`✅ [${cardId}] 內容修復成功！`);
+        } else {
+          toeicSheet.getRange(rowNum, 2).setValue("ERROR_" + part);
+        }
+        fixCount++;
+      }
+    }
+  }
+
+  // ==========================================
+  // 🗣️ 模組 B：掃描口說題庫 (Flashcards)
+  // ==========================================
+  if (speakSheet) {
+    if (new Date().getTime() - startTime > MAX_EXECUTION_TIME) {
+      Logger.log("⏳ QA 時間即將耗盡，口說檢查自動順延至下次排程。");
+      return;
+    }
+    
+    Logger.log("🗣️ 進入口說題庫檢查...");
+    const sData = speakSheet.getDataRange().getValues();
+    let existingSIds = new Set();
+    let maxSId = 0;
+    let speakHole=2;
+
+    for (let i = 1; i < sData.length; i++) {
+      let cardId = sData[i][0] ? sData[i][0].toString() : "";
+      existingSIds.add(cardId);
+      if (cardId.startsWith("S-")) {
+        let num = parseInt(cardId.replace("S-", ""), 10);
+        if (!isNaN(num) && num > maxSId) maxSId = num;
+      }
+    }
+
+    // 1. 口說缺號補完 (Gap Healer)
+    let sGapFixCount = 0;
+    let consecutiveFailures = 0; // 🌟 新增口說專屬斷路器
+
+    for (let num = 1; num <= maxSId; num++) {
+      if (sGapFixCount >= speakHole) break; // 口說每次最多補 2 洞
+      if (new Date().getTime() - startTime > MAX_EXECUTION_TIME) return;
+
+      let candidateId = "S-" + num.toString().padStart(6, '0');
+      if (!existingSIds.has(candidateId)) {
+        Logger.log(`⚠️ 發現口說缺號 [${candidateId}]，啟動補完程序...`);
+        if (sheetProgress) cleanOrphanRecords(sheetProgress, candidateId);
+
+        let beforeCount = speakSheet.getLastRow();
+
+        try {
+          // ⚠️ 請將此處替換為您實際負責產生口說資料的 Agent 函數名稱
+          runAgent_PDF_to_Speaking(candidateId); 
+
+          let afterCount = speakSheet.getLastRow();
+
+          if (afterCount > beforeCount) {
+            consecutiveFailures = 0; 
+            sGapFixCount++;
+          } else {
+            consecutiveFailures++;
+            Logger.log(`⚠️ [${candidateId}] 口說補號產出 0 題。連續失敗次數：${consecutiveFailures}`);
+            
+            if (consecutiveFailures >= 3) {
+               Logger.log(`🛑 [斷路器啟動] 口說連續 3 次產出 0 題！強制中斷口說補號。`);
+               break; // 中斷口說檢查
+            }
+          }
+          Utilities.sleep(4000); // 確保不被 API 擋下
+          
+        } catch (e) { Logger.log(`❌ 口說產題失敗：${e}`); }
+      }
+    }
+
+    // 2. 口說瑕疵修復 (Defect Healer)
+    let sFixCount = 0;
+    for (let i = sData.length - 1; i >= 1; i--) {
+      if (new Date().getTime() - startTime > MAX_EXECUTION_TIME) break;
+      if (sFixCount >= speakHole) break; 
+
+      let rowNum = i + 1;
+      let cardId = sData[i][0];
+      let tag = sData[i][1];
+      let scenario = sData[i][2];
+      let context = sData[i][3];
+      let sentence_en = sData[i][4] ? sData[i][4].toString().trim() : "";
+      
+      if (cardId.toString().startsWith("ERROR_")) continue;
+
+      // 🚨 偵測條件：如果英文句子小於 5 個字元，或是情境/上下文為空
+      if (sentence_en.length < 5 || !scenario || !context) {
+        Logger.log(`🚨 發現口說瑕疵題 [${cardId}]，啟動 AI 療癒程序...`);
+        let rawDataToFix = `Tag: ${tag}\nScenario: ${scenario}\nContext: ${context}\nSentence_EN: ${sentence_en}`;
+        
+        let fixedContent = healDefectiveData("SPEAKING_BROKEN", rawDataToFix);
+        if (fixedContent && fixedContent.Sentence_EN) {
+          // 寫回 C, D, E 欄 (index 3, 4, 5)
+          speakSheet.getRange(rowNum, 3).setValue(fixedContent.Scenario);
+          speakSheet.getRange(rowNum, 4).setValue(fixedContent.Context);
+          speakSheet.getRange(rowNum, 5).setValue(fixedContent.Sentence_EN);
+          Logger.log(`✅ [${cardId}] 口說內容修復成功！`);
+        } else {
+          Logger.log(`❌ [${cardId}] 無法修復，執行隔離！`);
+          speakSheet.getRange(rowNum, 1).setValue("ERROR_" + cardId);
+        }
+        sFixCount++;
+      }
+    }
+  }
+}
+
+// === 輔助函數：清理孤兒紀錄，拉出來寫更乾淨 ===
+function cleanOrphanRecords(sheetProgress, targetId) {
+  let progData = sheetProgress.getDataRange().getValues();
+  for (let r = progData.length - 1; r >= 1; r--) {
+    if (progData[r][2] === targetId) sheetProgress.deleteRow(r + 1);
+  }
+  Logger.log(`🧹 已清理 [${targetId}] 在進度表中的潛在孤兒紀錄。`);
+}
+
+// --- QA 專屬 AI 療癒引擎 ---
+function healDefectiveData(defectType, rawData) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${AGENT_CONFIG.GEMINI_API_KEY}`;
+  
+  let prompt = "";
+  if (defectType === "JSON_BROKEN") {
+    prompt = `
+    你是一位 JSON 修復專家。以下是一段損壞的 JSON 字串（可能是引號錯誤、漏逗號、或夾雜了 Markdown）。
+    請修復它，並**嚴格回傳一個合法的 JSON Array**，絕對不要包含任何 Markdown 標記（如 \`\`\`json ）。
+
+    【損壞的資料】
+    ${rawData}
+    `;
+  } else if (defectType === "SPEAKING_BROKEN") {
+    prompt = `
+    你是一位精通商務英語的口說大師。以下是一張損壞或資訊不全的口說字卡資料。
+    請根據僅存的資訊（可能是破碎的情境或標籤），重新生成合理且道地的「中文情境 (Scenario)」、「中文對話上下文 (Context)」以及「對應的英文口說句子 (Sentence_EN)」。
+
+    【損壞的資料】
+    ${rawData}
+
+    【回傳格式】(請嚴格輸出 JSON 物件，勿包含 Markdown)
+    {
+      "Scenario": "繁體中文情境描述 (如: 會議中表達反對)",
+      "Context": "繁體中文對話上下文 (如: A: 我認為應該降價。 B: 我不同意，這會破壞品牌。)",
+      "Sentence_EN": "I have to disagree; that might compromise our brand value."
+    }
+    `;
+  } else {
+    prompt = `
+    你是一位多益專家。以下是一道缺失答案與解析的題目。
+    請直接給出正確答案、翻譯與解析。
+
+    【題目資料】
+    ${rawData}
+
+    【回傳格式】(請嚴格輸出 JSON 物件，勿包含 Markdown)
+    {
+      "Correct_Answer": "A/B/C/D",
+      "Translation": "繁體中文翻譯",
+      "Analysis": "繁體中文解析"
+    }
+    `;
+  }
+
+  const payload = { "contents": [{ "parts": [{"text": prompt}] }], "generationConfig": { "responseMimeType": "application/json" } };
+  const options = { "method": "post", "contentType": "application/json", "payload": JSON.stringify(payload), "muteHttpExceptions": true };
+
+  try {
+    let response = UrlFetchApp.fetch(url, options);
+    let json = JSON.parse(response.getContentText());
+    if (json.candidates && json.candidates.length > 0) {
+      let result = json.candidates[0].content.parts[0].text.replace(/```json/g, "").replace(/```/g, "").trim();
+      if (defectType === "JSON_BROKEN") {
+        // 驗證修復後的 JSON 是否合法
+        JSON.parse(result);
+        return result; 
+      } else {
+        return JSON.parse(result);
+      }
+    }
+  } catch (e) { return null; }
+  return null;
+}
